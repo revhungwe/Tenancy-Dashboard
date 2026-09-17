@@ -1,0 +1,2280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tenancy Expiry Watch — POS Malaysia Channel Network</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Charts and Excel export are built with vanilla JS below (no external libraries), so this
+     file works fully offline and inside sandboxed previews that block third-party CDNs. -->
+<style>
+  :root{
+    --navy:#12283F;
+    --navy-2:#1B3A5C;
+    --cream:#F5F2EA;
+    --panel:#FFFFFF;
+    --ink:#1B2430;
+    --ink-soft:#5B6472;
+    --line:#E3DED2;
+    --red:#D64550;
+    --red-bg:#FBE7E8;
+    --amber:#E29B3E;
+    --amber-bg:#FCF0DC;
+    --gold:#B8862E;
+    --gold-bg:#F6EDDA;
+    --green:#2F8F6E;
+    --green-bg:#E4F3EC;
+    --blue:#3E7BC4;
+    --blue-bg:#E3EEFA;
+    --slate:#8A93A3;
+    --slate-bg:#EDEFF2;
+    --radius:10px;
+    --shadow: 0 1px 2px rgba(18,40,63,0.06), 0 4px 16px rgba(18,40,63,0.05);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--cream);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .wrap{max-width:1360px;margin:0 auto;padding:28px 24px 60px;}
+
+  /* HEADER */
+  header.top{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    gap:20px;flex-wrap:wrap;
+    margin-bottom:22px;
+    padding-bottom:18px;
+    border-bottom:2px solid var(--navy);
+  }
+  .brand-row{display:flex;align-items:center;gap:12px;}
+  .brand-mark{
+    width:38px;height:38px;border-radius:9px;background:var(--navy);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    font-family:'Space Grotesk',sans-serif;font-weight:700;color:#fff;font-size:15px;
+  }
+  .brand-eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--ink-soft);margin:0 0 4px;
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:clamp(24px,4vw,34px);
+    margin:0;color:var(--navy);letter-spacing:-0.01em;
+  }
+  .header-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
+  .today-chip{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    background:var(--navy);color:#fff;
+    padding:8px 14px;border-radius:20px;
+    display:flex;align-items:center;gap:8px;
+    white-space:nowrap;
+  }
+  .today-chip .dot{width:7px;height:7px;border-radius:50%;background:#6FE3A8;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+  @media (prefers-reduced-motion:reduce){.today-chip .dot{animation:none;}}
+  .scope-note{font-size:11.5px;color:var(--ink-soft);text-align:right;max-width:320px;line-height:1.4;}
+  .scope-note b{color:var(--navy);}
+
+  /* TOOLBAR */
+  .toolbar{
+    display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+    margin-bottom:20px;
+  }
+  .btn{
+    font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;
+    padding:9px 14px;border-radius:8px;border:1px solid var(--line);
+    background:#fff;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:7px;
+    box-shadow:var(--shadow); transition: transform .1s ease, background .12s ease;
+  }
+  .btn:hover{transform:translateY(-1px);}
+  .btn svg{width:13px;height:13px;flex-shrink:0;}
+  .btn-primary{background:var(--navy);border-color:var(--navy);color:#fff;}
+  .btn-primary:hover{background:var(--navy-2);}
+  .btn-ghost{background:transparent;box-shadow:none;color:var(--ink-soft);}
+  .toolbar .spacer{flex:1;}
+  .last-edit-note{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);}
+
+  /* SECTION HEADERS */
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;margin:26px 0 12px;gap:12px;flex-wrap:wrap;}
+  .section-head h2{
+    font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16.5px;color:var(--navy);margin:0;
+    display:flex;align-items:center;gap:8px;
+  }
+  .section-head .section-sub{font-size:12px;color:var(--ink-soft);}
+
+  /* EXEC SUMMARY STRIP */
+  .exec-strip{
+    display:grid;grid-template-columns:repeat(8,1fr);gap:12px;
+  }
+  @media (max-width:1100px){.exec-strip{grid-template-columns:repeat(4,1fr);}}
+  @media (max-width:600px){.exec-strip{grid-template-columns:repeat(2,1fr);}}
+  .exec-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 14px 12px;box-shadow:var(--shadow);border-top:3px solid var(--slate);
+  }
+  .exec-card .num{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:24px;line-height:1;color:var(--navy);}
+  .exec-card .lbl{font-size:11px;color:var(--ink-soft);margin-top:6px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
+  .exec-card[data-k="total"]{border-top-color:var(--navy);}
+  .exec-card[data-k="active"]{border-top-color:var(--green);}
+  .exec-card[data-k="b30"]{border-top-color:var(--red);}
+  .exec-card[data-k="b60"]{border-top-color:var(--amber);}
+  .exec-card[data-k="b90"]{border-top-color:var(--gold);}
+  .exec-card[data-k="expired"]{border-top-color:var(--slate);}
+  .exec-card[data-k="noexp"]{border-top-color:var(--blue);}
+  .exec-card[data-k="within90"]{border-top-color:var(--red);background:var(--red-bg);}
+  .exec-card[data-k="within90"] .num, .exec-card[data-k="within90"] .lbl{color:#A5262F;}
+
+  /* KPI CARDS (tier bands, original) */
+  .kpis{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:6px;
+  }
+  @media (max-width:820px){.kpis{grid-template-columns:repeat(2,1fr);}}
+  .kpi{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 18px;cursor:pointer;box-shadow:var(--shadow);
+    border-left:4px solid var(--slate);
+    transition:transform .12s ease, box-shadow .12s ease;
+    text-align:left;
+  }
+  .kpi:hover{transform:translateY(-2px);}
+  .kpi.active{outline:2px solid var(--navy);outline-offset:1px;}
+  .kpi[data-tier="urgent"]{border-left-color:var(--red);}
+  .kpi[data-tier="approaching"]{border-left-color:var(--amber);}
+  .kpi[data-tier="upcoming"]{border-left-color:#3E7BC4;}
+  .kpi[data-tier="healthy"]{border-left-color:var(--green);}
+  .kpi .num{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:30px;line-height:1;color:var(--navy);}
+  .kpi .lbl{font-size:12.5px;color:var(--ink-soft);margin-top:6px;font-weight:500;}
+  .kpi .sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin-top:2px;}
+
+  /* CHARTS */
+  .charts-grid{display:grid;grid-template-columns:1.1fr 1.4fr;gap:14px;}
+  @media (max-width:980px){.charts-grid{grid-template-columns:1fr;}}
+  .chart-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 18px 10px;box-shadow:var(--shadow);
+  }
+  .chart-card h3{
+    font-family:'Space Grotesk',sans-serif;font-size:13.5px;font-weight:600;color:var(--navy);
+    margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;
+  }
+  .chart-card h3 .n{font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:11px;color:var(--ink-soft);}
+  .chart-wrap{position:relative;height:230px;}
+  .chart-wrap.tall{height:280px;}
+  .charts-row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;}
+  @media (max-width:980px){.charts-row2{grid-template-columns:1fr;}}
+
+  /* CONTROLS */
+  .controls{
+    display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:12px 14px;margin-bottom:16px;box-shadow:var(--shadow);
+  }
+  .controls input[type=search], .controls select{
+    font-family:'Inter',sans-serif;font-size:13.5px;
+    border:1px solid var(--line);border-radius:8px;
+    padding:8px 10px;background:#fff;color:var(--ink);
+  }
+  .controls input[type=search]{flex:1 1 220px;min-width:180px;}
+  .controls select{cursor:pointer;}
+  .controls label.toggle{
+    display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-soft);
+    cursor:pointer;user-select:none;padding:8px 4px;
+  }
+  .controls .count-note{
+    margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);
+  }
+  select:focus, input:focus, button:focus, .kpi:focus{
+    outline:2px solid var(--navy-2);outline-offset:2px;
+  }
+
+  /* LEGEND */
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend i{width:10px;height:10px;border-radius:3px;display:inline-block;}
+
+  /* TABLE */
+  .table-shell{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    overflow:hidden;box-shadow:var(--shadow);
+  }
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{
+    text-align:left;font-family:'Inter',sans-serif;font-weight:600;font-size:11.5px;
+    text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);
+    padding:12px 14px;background:#FAFAF7;border-bottom:1px solid var(--line);
+    cursor:pointer;white-space:nowrap;position:sticky;top:0;
+  }
+  thead th:hover{color:var(--navy);}
+  thead th .arrow{opacity:.4;font-size:10px;margin-left:3px;}
+  thead th.no-sort{cursor:default;}
+  tbody tr{border-bottom:1px solid var(--line);}
+  tbody tr:last-child{border-bottom:none;}
+  tbody tr:hover{background:#FBFAF6;}
+  td{padding:10px 14px;vertical-align:middle;}
+  .group-row td{
+    background:var(--navy);color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:600;
+    font-size:13px;padding:9px 14px;letter-spacing:.02em;
+  }
+  .group-row .g-count{font-family:'IBM Plex Mono',monospace;font-weight:400;opacity:.75;margin-left:8px;font-size:11.5px;}
+  td.name{font-weight:600;color:var(--ink);}
+  td.cc{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-soft);}
+  td.mono{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink-soft);}
+  .cat-badge{
+    font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:20px;
+    display:inline-block;white-space:nowrap;
+  }
+  .cat-Post-Office{background:#E5EEF7;color:#2A5788;}
+  .cat-Pos-Laju-Centre{background:var(--amber-bg);color:#8A5A15;}
+  .cat-Pos-Laju-Kiosk{background:#E8E4F7;color:#5C4A9E;}
+
+  /* RUNWAY BAR */
+  .runway-cell{min-width:170px;}
+  .runway{position:relative;height:8px;border-radius:6px;background:#EDEAE0;overflow:hidden;}
+  .runway .fill{position:absolute;left:0;top:0;bottom:0;border-radius:6px;}
+  .runway-meta{display:flex;justify-content:space-between;margin-top:4px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);}
+  .days-badge{
+    font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:12px;
+    padding:3px 8px;border-radius:6px;white-space:nowrap;
+  }
+  .tier-urgent{background:var(--red-bg);color:#A5262F;}
+  .tier-approaching{background:var(--amber-bg);color:#8A5A15;}
+  .tier-upcoming{background:#E3EEFA;color:#2A5788;}
+  .tier-healthy{background:var(--green-bg);color:#1D6A4E;}
+  .status-badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;font-family:'IBM Plex Mono',monospace;letter-spacing:.03em;text-transform:uppercase;}
+  .status-badge.active{background:var(--green-bg);color:#1D6A4E;}
+  .status-badge.closed{background:var(--red-bg);color:#A5262F;}
+  .mode-pill{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;background:var(--slate-bg);color:#5B6472;text-transform:uppercase;letter-spacing:.04em;}
+  .mode-pill.admin{background:var(--green-bg);color:#1E6B4F;}
+  .activity-entry{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);align-items:flex-start;}
+  .activity-entry:last-child{border-bottom:none;}
+  .activity-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px;text-transform:uppercase;flex-shrink:0;margin-top:2px;}
+  .activity-badge.added{background:var(--green-bg);color:#1E6B4F;}
+  .activity-badge.edited{background:var(--amber-bg);color:#8A5A18;}
+  .activity-badge.deleted{background:var(--red-bg);color:#A5262F;}
+  .activity-main{flex:1;}
+  .activity-title{font-size:13px;color:var(--ink);font-weight:600;}
+  .activity-meta{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
+  .tier-expired{background:var(--slate-bg);color:#565F6E;}
+  .tier-noexpiry{background:var(--blue-bg);color:#2A5788;}
+
+  .row-actions{display:flex;gap:6px;}
+  .icon-btn{
+    background:#fff;border:1px solid var(--line);border-radius:6px;width:26px;height:26px;
+    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);
+  }
+  .icon-btn:hover{background:#FAFAF7;color:var(--navy);}
+  .icon-btn.danger:hover{color:var(--red);border-color:var(--red);}
+  .icon-btn svg{width:13px;height:13px;}
+
+  .empty-state{padding:50px 20px;text-align:center;color:var(--ink-soft);}
+  .empty-state .big{font-family:'Space Grotesk',sans-serif;font-size:18px;color:var(--navy);margin-bottom:6px;}
+
+  footer{margin-top:22px;font-size:11.5px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;line-height:1.6;}
+
+  /* COLUMN FILTER (Excel-style) */
+  th .th-inner{display:flex;align-items:center;gap:6px;justify-content:space-between;}
+  .filter-btn{
+    background:none;border:none;cursor:pointer;padding:3px 4px;border-radius:5px;
+    color:var(--ink-soft);display:inline-flex;align-items:center;line-height:0;
+    font-size:0;
+  }
+  .filter-btn:hover{background:#EDEAE0;}
+  .filter-btn svg{width:11px;height:11px;}
+  .filter-btn.active{color:var(--navy);background:#E3EEFA;}
+  .filter-pop{
+    position:fixed;z-index:50;background:#fff;border:1px solid var(--line);border-radius:10px;
+    box-shadow:0 10px 32px rgba(18,40,63,0.18);width:240px;max-height:340px;
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  .filter-pop .fp-search{
+    padding:8px;border-bottom:1px solid var(--line);
+  }
+  .filter-pop .fp-search input{
+    width:100%;font-family:'Inter',sans-serif;font-size:12.5px;padding:6px 8px;
+    border:1px solid var(--line);border-radius:6px;
+  }
+  .filter-pop .fp-actions{
+    display:flex;justify-content:space-between;padding:6px 10px;font-size:11.5px;
+    border-bottom:1px solid var(--line);
+  }
+  .filter-pop .fp-actions button{
+    background:none;border:none;color:var(--navy-2);cursor:pointer;font-size:11.5px;
+    font-weight:600;padding:2px 0;
+  }
+  .filter-pop .fp-list{overflow-y:auto;padding:4px 0;flex:1;}
+  .filter-pop label{
+    display:flex;align-items:center;gap:7px;padding:5px 12px;font-size:12.5px;cursor:pointer;
+  }
+  .filter-pop label:hover{background:#FAFAF7;}
+  .filter-pop label span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .filter-pop .fp-footer{
+    padding:8px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;
+  }
+  .filter-pop .fp-footer button{
+    font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px;
+    cursor:pointer;border:1px solid var(--line);background:#fff;
+  }
+  .filter-pop .fp-footer button.primary{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .active-filter-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;background:#E3EEFA;color:#2A5788;
+    font-size:11.5px;font-weight:600;padding:4px 8px 4px 10px;border-radius:20px;
+  }
+  .chip button{background:none;border:none;cursor:pointer;color:#2A5788;font-size:13px;line-height:1;padding:0;}
+
+  /* MODAL */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(18,40,63,0.45);z-index:100;
+    display:none;align-items:center;justify-content:center;padding:20px;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal{
+    background:#fff;border-radius:12px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;
+    box-shadow:0 20px 60px rgba(18,40,63,0.35);
+  }
+  .modal-head{
+    padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;
+    position:sticky;top:0;background:#fff;
+  }
+  .modal-head h3{font-family:'Space Grotesk',sans-serif;font-size:17px;color:var(--navy);margin:0;}
+  .modal-close{background:none;border:none;cursor:pointer;font-size:20px;color:var(--ink-soft);line-height:1;padding:4px;}
+  .modal-close:hover{color:var(--navy);}
+  .modal-body{padding:20px 22px;}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .form-field{display:flex;flex-direction:column;gap:5px;}
+  .form-field.full{grid-column:1/-1;}
+  .form-field label{font-size:12px;font-weight:600;color:var(--ink-soft);}
+  .form-field input, .form-field select{
+    font-family:'Inter',sans-serif;font-size:13.5px;padding:9px 10px;border:1px solid var(--line);
+    border-radius:8px;background:#fff;color:var(--ink);
+  }
+  .form-field input:focus, .form-field select:focus{outline:2px solid var(--navy-2);outline-offset:1px;}
+  .form-check{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+  .modal-foot{
+    padding:16px 22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;
+    position:sticky;bottom:0;background:#fff;
+  }
+  .form-error{font-size:12px;color:var(--red);margin-top:4px;min-height:16px;}
+  .required-mark{color:var(--red);}
+
+  .toast{
+    position:fixed;bottom:22px;right:22px;background:var(--navy);color:#fff;padding:12px 18px;border-radius:8px;
+    font-size:13px;box-shadow:0 8px 24px rgba(18,40,63,0.3);z-index:200;
+    display:flex;align-items:center;gap:10px;
+    opacity:0;transform:translateY(10px);transition:opacity .2s ease, transform .2s ease;pointer-events:none;
+  }
+  .toast.show{opacity:1;transform:translateY(0);}
+
+  /* PRINT */
+  @media print{
+    body{background:#fff;}
+    .toolbar, .controls, .active-filter-chips, .modal-overlay, .filter-btn, .btn, .icon-btn{display:none !important;}
+    .wrap{max-width:100%;padding:10px 14px;}
+    .charts-grid, .charts-row2{break-inside:avoid;}
+    .chart-card, .exec-card, .kpi, .table-shell{box-shadow:none !important;border:1px solid #ccc !important;}
+    thead th{position:static;}
+    .row-actions{display:none !important;}
+    a[href]:after{content:"";}
+    .automation-panel, .modal-overlay{display:none !important;}
+  }
+
+  /* ============ MANAGEMENT EMAIL AUTOMATION ============ */
+  .automation-panel{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:18px 20px 20px;margin-bottom:6px;
+  }
+  .automation-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+  .automation-head-left{display:flex;align-items:center;gap:10px;}
+  .automation-status-pill{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .automation-status-pill.on{background:var(--green-bg);color:#1E6B4F;}
+  .automation-status-pill.off{background:var(--slate-bg);color:#5B6472;}
+  .automation-status-pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .automation-grid{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px;
+  }
+  @media (max-width:1100px){.automation-grid{grid-template-columns:repeat(3,1fr);}}
+  @media (max-width:640px){.automation-grid{grid-template-columns:repeat(2,1fr);}}
+  .automation-card{
+    background:var(--cream);border:1px solid var(--line);border-radius:8px;padding:12px 14px;
+  }
+  .automation-card .auto-lbl{font-size:10.5px;color:var(--ink-soft);font-weight:600;text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px;}
+  .automation-card .auto-val{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;color:var(--navy);line-height:1.3;word-break:break-word;}
+  .automation-card .auto-val.err{color:var(--red);font-family:'Inter',sans-serif;font-weight:600;font-size:12.5px;}
+  .automation-card.warn{border-color:var(--amber);background:var(--amber-bg);}
+  .automation-note{font-size:11.5px;color:var(--ink-soft);line-height:1.5;background:var(--slate-bg);border-radius:8px;padding:10px 12px;margin-top:4px;}
+  .automation-note b{color:var(--navy);}
+  .automation-actions{display:flex;gap:10px;flex-wrap:wrap;}
+
+  /* Settings modal specifics */
+  .settings-section{margin-bottom:18px;}
+  .settings-section h4{font-family:'Space Grotesk',sans-serif;font-size:13px;color:var(--navy);margin:0 0 8px;}
+  .recipient-row{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
+  .recipient-row input{flex:1;font-family:'Inter',sans-serif;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;}
+  .recipient-row button{background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:4px 8px;}
+  .add-recipient-btn{background:none;border:1px dashed var(--line);color:var(--navy-2);cursor:pointer;font-size:12px;font-weight:600;padding:7px 12px;border-radius:8px;width:100%;}
+  .settings-inline{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .settings-inline .form-field label{font-size:12px;font-weight:600;color:var(--ink-soft);}
+  .settings-inline .form-field input, .settings-inline .form-field select{
+    width:100%;font-family:'Inter',sans-serif;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;
+  }
+  .settings-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);}
+  .settings-toggle-row:last-child{border-bottom:none;}
+  .settings-toggle-row .stt-label{font-size:13px;color:var(--ink);font-weight:600;}
+  .settings-toggle-row .stt-sub{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
+  .switch{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0;}
+  .switch input{opacity:0;width:0;height:0;}
+  .switch .slider{position:absolute;cursor:pointer;inset:0;background:#CBD2DC;border-radius:22px;transition:.15s;}
+  .switch .slider:before{position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.15s;}
+  .switch input:checked + .slider{background:var(--green);}
+  .switch input:checked + .slider:before{transform:translateX(18px);}
+
+  /* Email preview modal */
+  .preview-modal .modal{max-width:820px;}
+  .preview-frame-wrap{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#f2f2f2;}
+  #emailPreviewFrame{width:100%;height:60vh;border:none;background:#fff;display:block;}
+  .preview-toolbar{display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;flex-wrap:wrap;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand-row">
+      <div class="brand-mark">PM</div>
+      <div>
+        <p class="brand-eyebrow">POS Malaysia &middot; Channel Network &middot; Property &amp; Tenancy Management</p>
+        <h1>Tenancy Expiry Watch</h1>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="today-chip"><span class="dot"></span><span id="todayLabel"></span></div>
+      <div class="scope-note">Scope: <b>Channel outlets only</b> — Post Office, Pos Laju Centre &amp; Pos Laju Kiosk. Operational sites are excluded from this report.</div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <button class="btn btn-primary admin-only" id="addBtn" style="display:none;">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Add Tenancy
+    </button>
+    <button class="btn" id="exportExcelBtn">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 2h8l4 4v8H2V2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M6 8l4 4M10 8l-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Export to Excel
+    </button>
+    <button class="btn" id="printBtn">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6V2h8v4M4 12h8v2H4v-2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><rect x="2" y="6" width="12" height="5" rx="1" stroke="currentColor" stroke-width="1.4"/></svg>
+      Print / Save as PDF
+    </button>
+    <button class="btn admin-only" id="generateEmailBtn" style="display:none;">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 4h12v8H2V4z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M2 4l6 5 6-5" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+      Generate Weekly Management Email
+    </button>
+    <button class="btn admin-only" id="sendTestEmailBtn" style="display:none;">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2L7 9M14 2L9.5 14l-2.5-5L2 6.5 14 2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+      Send Test Email
+    </button>
+    <span class="spacer"></span>
+    <span class="last-edit-note" id="lastEditNote"></span>
+    <button class="btn btn-ghost admin-only" id="resetBtn" style="display:none;" title="Clear all locally saved additions and edits">Reset local edits</button>
+    <button class="btn btn-ghost admin-only" id="activityLogBtn" style="display:none;">Activity Log</button>
+    <span class="mode-pill" id="modePill">Viewer</span>
+    <button class="btn btn-ghost" id="adminLoginBtn">Admin Login</button>
+    <button class="btn btn-ghost admin-only" id="adminLogoutBtn" style="display:none;">Switch to Viewer</button>
+  </div>
+
+  <!-- ADMIN LOGIN MODAL -->
+  <div class="modal-overlay" id="adminLoginOverlay">
+    <div class="modal" style="max-width:380px;">
+      <div class="modal-head">
+        <h3>Admin Login</h3>
+        <button class="modal-close" id="adminLoginClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-field">
+          <label>Your Name</label>
+          <input type="text" id="adminNameInput" placeholder="e.g. Rivaldo Hungwe">
+        </div>
+        <div class="form-field" style="margin-top:10px;">
+          <label>Contact (email or phone)</label>
+          <input type="text" id="adminContactInput" placeholder="e.g. rivaldo@pos.com.my">
+        </div>
+        <div class="form-field" style="margin-top:10px;">
+          <label>Admin Password</label>
+          <input type="password" id="adminPasswordInput" placeholder="Enter admin password" autocomplete="off">
+        </div>
+        <div class="form-error" id="adminLoginError"></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" id="adminLoginCancelBtn" type="button">Cancel</button>
+        <button class="btn btn-primary" id="adminLoginSubmitBtn" type="button">Log In</button>
+      </div>
+    </div>
+  </div>
+
+
+
+  <div class="section-head">
+    <h2>Executive Summary — 90-Day Expiry Watch</h2>
+    <span class="section-sub">Recalculated live against today's date. Click a status card in the band below to filter the table.</span>
+  </div>
+  <div class="exec-strip" id="execStrip"></div>
+
+  <div class="section-head">
+    <h2>Management Email Automation</h2>
+    <span class="section-sub">Weekly renewal-status report, generated from the data above and sent to Management every Monday.</span>
+  </div>
+  <div class="automation-panel">
+    <div class="automation-head">
+      <div class="automation-head-left">
+        <span class="automation-status-pill" id="automationStatusPill"><span class="dot"></span><span id="automationStatusText">Checking…</span></span>
+      </div>
+      <button class="btn btn-ghost admin-only" id="emailSettingsBtn" style="box-shadow:none;display:none;">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 10.2a2.2 2.2 0 100-4.4 2.2 2.2 0 000 4.4z" stroke="currentColor" stroke-width="1.3"/><path d="M13 8.6v-1.2l1.3-.7-1-1.7-1.4.5a4.7 4.7 0 00-1-.6l-.2-1.5H8.3l-.2 1.5c-.4.15-.7.35-1 .6l-1.4-.5-1 1.7 1.3.7v1.2l-1.3.7 1 1.7 1.4-.5c.3.25.6.45 1 .6l.2 1.5h1.4l.2-1.5c.4-.15.7-.35 1-.6l1.4.5 1-1.7-1.3-.7z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>
+        Email Settings
+      </button>
+    </div>
+    <div class="automation-grid" id="automationGrid"></div>
+    <div class="automation-note" id="automationNote"></div>
+  </div>
+
+  <div class="section-head">
+    <h2>Portfolio Insights</h2>
+    <span class="section-sub">Auto-updates as records are added, edited or removed.</span>
+  </div>
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3>Expiry Status Mix <span class="n" id="chartTotalN"></span></h3>
+      <div class="chart-wrap tall" id="statusPie"></div>
+    </div>
+    <div class="chart-card">
+      <h3>Expiring in the Next 90 Days — by Month <span class="n">count of outlets</span></h3>
+      <div class="chart-wrap tall" id="monthBar"></div>
+    </div>
+  </div>
+  <div class="charts-row2">
+    <div class="chart-card">
+      <h3>Outlets by Category <span class="n">channel network</span></h3>
+      <div class="chart-wrap" id="categoryBar"></div>
+    </div>
+    <div class="chart-card">
+      <h3>Outlets by State <span class="n">ranked</span></h3>
+      <div class="chart-wrap" id="stateBar"></div>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <h2>Tenancy Register</h2>
+    <span class="section-sub">Full outlet-level detail. Use column filters, search or the status band above to narrow the list.</span>
+  </div>
+
+  <div class="kpis" id="kpiRow"></div>
+
+  <div class="legend">
+    <span><i style="background:var(--red)"></i> Urgent — expiring within 90 days</span>
+    <span><i style="background:var(--amber)"></i> Approaching — within 91–180 days</span>
+    <span><i style="background:#3E7BC4"></i> Upcoming — within 181–365 days</span>
+    <span><i style="background:var(--green)"></i> Healthy — more than 365 days away</span>
+    <span><i style="background:var(--slate)"></i> Expired</span>
+    <span><i style="background:var(--blue)"></i> No expiry date on record</span>
+  </div>
+
+  <div class="controls">
+    <input type="search" id="search" placeholder="Search outlet name or cost centre…" />
+    <button id="yearFilterBtn" class="hdr-filter-btn" data-col="year" style="font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:6px;">Filter by Year <span style="font-size:10px;">▾</span></button>
+    <label class="toggle"><input type="checkbox" id="groupToggle" checked> Group by state</label>
+    <button id="clearAllBtn" style="font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;color:var(--ink-soft);">Clear all filters</button>
+    <span class="count-note" id="countNote"></span>
+  </div>
+
+  <div class="active-filter-chips" id="chipRow"></div>
+
+  <div class="table-shell">
+    <table>
+      <thead>
+        <tr>
+          <th data-key="state"><div class="th-inner"><span>State</span> <button class="filter-btn" data-col="state" aria-label="Filter State"></button></div></th>
+          <th data-key="name"><div class="th-inner"><span>Outlet Name</span> <button class="filter-btn" data-col="name" aria-label="Filter Outlet Name"></button></div></th>
+          <th data-key="category"><div class="th-inner"><span>Category</span> <button class="filter-btn" data-col="category" aria-label="Filter Category"></button></div></th>
+          <th data-key="comm"><div class="th-inner"><span>Commencement</span></div></th>
+          <th data-key="exp"><div class="th-inner"><span>Expiry Date</span> <button class="filter-btn" data-col="year" aria-label="Filter Expiry Year"></button></div></th>
+          <th data-key="days" style="min-width:170px;"><div class="th-inner"><span>Time to Expiry</span> <button class="filter-btn" data-col="tier" aria-label="Filter Status"></button></div></th>
+          <th data-key="rent"><div class="th-inner"><span>Rent / Month (RM)</span></div></th>
+          <th data-key="statuslabel"><div class="th-inner"><span>Status</span></div></th>
+          <th class="no-sort"><div class="th-inner"><span>Actions</span></div></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <div class="big">No matching outlets</div>
+      <div>Try clearing a filter or search term.</div>
+    </div>
+  </div>
+
+  <footer>
+    Source: Property Rental &amp; Tenancy Mgmt database (POS Malaysia channel network — Post Office, Pos Laju Centre &amp; Pos Laju Kiosk only; operational sites excluded).<br>
+    Days-to-expiry, KPIs and charts recalculate live against today's date every time this file is opened, and refresh automatically if left open overnight.<br>
+    Manual additions/edits are saved locally in this browser (<span id="storageNote">no local edits yet</span>) — use "Export to Excel" to share updates with the wider team, since edits do not sync between devices.
+  </footer>
+</div>
+
+<!-- ADD / EDIT MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalTitle">Add Tenancy</h3>
+      <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="tenancyForm">
+        <div class="form-grid">
+          <div class="form-field full">
+            <label>Outlet Name <span class="required-mark">*</span></label>
+            <input type="text" id="f_name" required placeholder="e.g. Kiosk Sunway Pyramid">
+          </div>
+          <div class="form-field">
+            <label>Cost Centre <span class="required-mark">*</span></label>
+            <input type="text" id="f_cc" required placeholder="e.g. 10521399">
+          </div>
+          <div class="form-field">
+            <label>State <span class="required-mark">*</span></label>
+            <select id="f_state" required></select>
+          </div>
+          <div class="form-field">
+            <label>Category <span class="required-mark">*</span></label>
+            <select id="f_category" required>
+              <option value="Post Office">Post Office</option>
+              <option value="Pos Laju Centre">Pos Laju Centre</option>
+              <option value="Pos Laju Kiosk">Pos Laju Kiosk</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Rent / Month (RM)</label>
+            <input type="number" id="f_rent" step="0.01" min="0" placeholder="e.g. 3500.00">
+          </div>
+          <div class="form-field">
+            <label>Commencement Date <span class="required-mark">*</span></label>
+            <input type="date" id="f_comm" required>
+          </div>
+          <div class="form-field">
+            <label>Expiry Date</label>
+            <input type="date" id="f_exp">
+            <label class="form-check"><input type="checkbox" id="f_noexp"> No expiry date on record</label>
+          </div>
+        </div>
+        <div class="form-error" id="formError"></div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="deleteInModal" style="display:none;color:var(--red);">Delete this tenancy</button>
+      <span class="spacer"></span>
+      <button class="btn" id="cancelBtn" type="button">Cancel</button>
+      <button class="btn btn-primary" id="saveBtn" type="button">Save Tenancy</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRMATION MODAL -->
+<div class="modal-overlay" id="deleteConfirmOverlay">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-head">
+      <h3>Remove Tenancy?</h3>
+      <button class="modal-close" id="deleteConfirmClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p id="deleteConfirmText" style="font-size:13.5px;color:var(--ink);line-height:1.6;"></p>
+      <p style="font-size:12px;color:var(--ink-soft);">This only affects this shared register; it can't be automatically undone once removed, and will be recorded in the Activity Log under your name.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="deleteConfirmCancelBtn" type="button">Cancel</button>
+      <button class="btn" id="deleteConfirmYesBtn" type="button" style="background:var(--red);color:#fff;border-color:var(--red);">Yes, Remove It</button>
+    </div>
+  </div>
+</div>
+
+<!-- EMAIL SETTINGS MODAL -->
+<div class="modal-overlay" id="settingsOverlay">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-head">
+      <h3>Email Settings — Weekly Management Report</h3>
+      <button class="modal-close" id="settingsClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-section">
+        <h4>Management Recipients (To)</h4>
+        <div id="mgmtRecipientList"></div>
+        <button class="add-recipient-btn" id="addMgmtRecipientBtn">+ Add recipient</button>
+      </div>
+      <div class="settings-section">
+        <h4>CC Recipients (optional)</h4>
+        <div id="ccRecipientList"></div>
+        <button class="add-recipient-btn" id="addCcRecipientBtn">+ Add CC recipient</button>
+      </div>
+      <div class="settings-section">
+        <h4>Schedule &amp; Threshold</h4>
+        <div class="settings-inline">
+          <div class="form-field"><label>Report Day</label>
+            <select id="cfgDay">
+              <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+              <option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
+            </select>
+          </div>
+          <div class="form-field"><label>Report Time</label><input type="time" id="cfgTime"></div>
+          <div class="form-field"><label>Urgent Threshold (days)</label><input type="number" id="cfgThreshold" min="1" max="365"></div>
+          <div class="form-field"><label>Email Subject Prefix</label><input type="text" id="cfgSubject"></div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h4>Automation Server</h4>
+        <div class="form-field"><label style="font-size:12px;font-weight:600;color:var(--ink-soft);">Automation Server URL (the backend that sends the Monday email — see setup guide)</label>
+          <input type="text" id="cfgServerUrl" placeholder="e.g. https://tenancy-automation.yourcompany.com">
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-toggle-row">
+          <div><div class="stt-label">Automatic Monday email</div><div class="stt-sub">When ON, the automation server sends the report every scheduled Monday.</div></div>
+          <label class="switch"><input type="checkbox" id="cfgAutoSend"><span class="slider"></span></label>
+        </div>
+        <div class="settings-toggle-row">
+          <div><div class="stt-label">Test mode</div><div class="stt-sub">When ON, the automatic Monday send is diverted to Test Mode only (no live Management email is sent automatically).</div></div>
+          <label class="switch"><input type="checkbox" id="cfgTestMode"><span class="slider"></span></label>
+        </div>
+      </div>
+      <div class="form-error" id="settingsError"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="restoreDefaultRecipientsBtn" type="button">Restore default recipients</button>
+      <span class="spacer"></span>
+      <button class="btn" id="settingsCancelBtn" type="button">Cancel</button>
+      <button class="btn btn-primary" id="settingsSaveBtn" type="button">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- EMAIL PREVIEW MODAL -->
+<div class="modal-overlay preview-modal" id="previewOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="previewModalTitle">Weekly Management Email — Preview</h3>
+      <button class="modal-close" id="previewClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="preview-toolbar">
+        <button class="btn" id="copyEmailHtmlBtn">Copy HTML</button>
+        <button class="btn" id="openInOutlookBtn">Open in Outlook (text version)</button>
+      </div>
+      <div class="preview-frame-wrap"><iframe id="emailPreviewFrame" title="Email preview"></iframe></div>
+    </div>
+    <div class="modal-foot">
+      <span class="last-edit-note" id="previewFooterNote" style="align-self:center;"></span>
+      <span class="spacer"></span>
+      <button class="btn" id="previewCloseBtn2" type="button">Close</button>
+      <button class="btn btn-primary" id="previewSendNowBtn" type="button">Send Now via Automation Server</button>
+    </div>
+  </div>
+</div>
+
+<!-- ACTIVITY LOG MODAL -->
+<div class="modal-overlay" id="activityLogOverlay">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-head">
+      <h3>Activity Log — Who Changed What</h3>
+      <button class="modal-close" id="activityLogClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="activityLogList" style="max-height:60vh;overflow:auto;"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="activityLogCloseBtn2" type="button">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script id="data" type="application/json">[{"cc": "10621301", "name": "Kiosk LRT Ampang Station", "state": "Selangor", "category": "Pos Laju Kiosk", "comm": "2024-02-01", "exp": "2027-01-31", "rent": 7850.2}, {"cc": "10621302", "name": "Kiosk LRT Stesen Bandar Tasik Selatan", "state": "KL", "category": "Pos Laju Kiosk", "comm": "2024-02-01", "exp": "2027-01-31", "rent": 2962.28}, {"cc": "10621303", "name": "Kiosk Stesen LRT Jelatek", "state": "KL", "category": "Pos Laju Kiosk", "comm": "2025-02-01", "exp": "2028-01-31", "rent": 3821}, {"cc": "10621304", "name": "Kiosk Stesen LRT Taman Melati", "state": "KL", "category": "Pos Laju Kiosk", "comm": "2025-02-01", "exp": "2028-01-31", "rent": 2421}, {"cc": "10521304", "name": "Kiosk Plaza Metro Kajang", "state": "Selangor", "category": "Pos Laju Kiosk", "comm": "2026-01-01", "exp": "2028-12-31", "rent": 729}, {"cc": "10521312", "name": "Kiosk Star Avenue", "state": "Selangor", "category": "Pos Laju Kiosk", "comm": "2026-02-10", "exp": "2026-05-09", "rent": 6063.75}, {"cc": "10521307", "name": "Kiosk Shell Jln Puchong KM12\n(Shell Taman Kinrara)", "state": "Selangor", "category": "Pos Laju Kiosk", "comm": "2025-11-03", "exp": "2027-11-02", "rent": 5200}, {"cc": "10521309", "name": "Kiosk Lotuss Ara Damansara", "state": "Selangor", "category": "Pos Laju Kiosk", "comm": "2025-01-25", "exp": "2027-01-24", "rent": 1629.8}, {"cc": "10321302", "name": "Kiosk Lotuss Bukit Mertajam", "state": "Pulau Pinang", "category": "Pos Laju Kiosk", "comm": "2025-10-30", "exp": "2027-10-29", "rent": 1383.2}, {"cc": "10321301", "name": "Kiosk Pearl City Mall", "state": "Pulau Pinang", "category": "Pos Laju Kiosk", "comm": "2023-09-01", "exp": "2026-08-31", "rent": 660}, {"cc": "10921305", "name": "Kiosk Aeon Bandar Dato Onn (formerly AEON Kempas)", "state": "Johor", "category": "Pos Laju Kiosk", "comm": "2025-09-07", "exp": "2027-09-06", "rent": 1945.6}, {"cc": "10921306", "name": "Kiosk Mydin Pelangi Indah", "state": "Johor", "category": "Pos Laju Kiosk", "comm": "2025-01-01", "exp": "2027-12-31", "rent": 950}, {"cc": "10521318", "name": "Kiosk Petronas Bandar Tun Hussein Onn", "state": "Selangor", "category": "Pos Laju Kiosk", "comm": "2024-04-16", "exp": "2027-04-15", "rent": 1915}, {"cc": "10521319", "name": "Kiosk Shell Bukit Tinggi", "state": "Selangor", "category": "Pos Laju Kiosk", "comm": "2024-01-01", "exp": "2026-12-31", "rent": 2700}, {"cc": "10521320", "name": "Kiosk Sri Pristana", "state": "Selangor", "category": "Pos Laju Kiosk", "comm": "2025-01-01", "exp": "2026-12-31", "rent": 2500}, {"cc": "10341040", "name": "Post Office Telok Bahang", "state": "Pulau Pinang", "category": "Post Office", "comm": "2024-12-01", "exp": "2026-11-30", "rent": 718.5}, {"cc": "10341023", "name": "Post Office Simpang Ampat", "state": "Pulau Pinang", "category": "Post Office", "comm": "2024-04-01", "exp": "2027-03-31", "rent": 1000}, {"cc": "10341018", "name": "Post Office Nibong Tebal", "state": "Pulau Pinang", "category": "Post Office", "comm": "2024-02-18", "exp": "2027-02-17", "rent": 1950}, {"cc": "10341046", "name": "Post Office Queensbay Mall", "state": "Pulau Pinang", "category": "Post Office", "comm": "2025-01-15", "exp": "2028-01-14", "rent": 1920.6}, {"cc": "10341048", "name": "Post Office Juru", "state": "Pulau Pinang", "category": "Post Office", "comm": "2025-01-01", "exp": "2027-12-31", "rent": 4000}, {"cc": "11141030", "name": "Post Office Batu Enam", "state": "Terengganu", "category": "Post Office", "comm": "2026-06-01", "exp": "2029-05-31", "rent": 3497.4}, {"cc": "10841024", "name": "Post Office Telok Mas", "state": "Melaka", "category": "Post Office", "comm": "2024-07-01", "exp": "2027-06-30", "rent": 1674.75}, {"cc": "10841025", "name": "Post Office Ayer Molek", "state": "Melaka", "category": "Post Office", "comm": "2026-05-01", "exp": "2029-04-30", "rent": 1905.75}, {"cc": "10841013", "name": "Post Office Tengkera", "state": "Melaka", "category": "Post Office", "comm": "2026-04-01", "exp": "2029-03-31", "rent": 2296.8}, {"cc": "10841028", "name": "Post Office Batang Melaka", "state": "Melaka", "category": "Post Office", "comm": "2022-02-01", "exp": "2028-01-31", "rent": 500}, {"cc": "10841030", "name": "Post Office Batu Berendam", "state": "Melaka", "category": "Post Office", "comm": "2024-12-01", "exp": "2027-11-30", "rent": 1760}, {"cc": "10941018", "name": "Post Office Kg. Kenangan Dato' Onn", "state": "Johor", "category": "Post Office", "comm": "2024-01-01", "exp": "2026-12-31", "rent": 1000}, {"cc": "10941006", "name": "Post Office Batu Anam", "state": "Johor", "category": "Post Office", "comm": "2026-01-01", "exp": "2028-12-31", "rent": 418}, {"cc": "10941069", "name": "Post Office Bandar Baru Uda", "state": "Johor", "category": "Post Office", "comm": "2025-02-01", "exp": "2028-01-31", "rent": 3000}, {"cc": "10941088", "name": "Post Office Tongkang Pechah", "state": "Johor", "category": "Post Office", "comm": "2024-09-01", "exp": "2027-08-31", "rent": 973.35}, {"cc": "10941072", "name": "Post Office Taman Perling", "state": "Johor", "category": "Post Office", "comm": "2023-09-01", "exp": "2026-08-31", "rent": 2413.95}, {"cc": "10941079", "name": "Post Office Bandar Baru Permas Jaya", "state": "Johor", "category": "Post Office", "comm": "2025-07-01", "exp": "2028-06-30", "rent": 3630}, {"cc": "10941077", "name": "Post Office Taman Universiti", "state": "Johor", "category": "Post Office", "comm": "2025-09-01", "exp": "2028-08-31", "rent": 3200}, {"cc": "10941084", "name": "Post Office Taman Megah Ria", "state": "Johor", "category": "Post Office", "comm": "2026-06-01", "exp": "2029-05-31", "rent": 1300}, {"cc": "10941092", "name": "Post Office Kangkar Pulai", "state": "Johor", "category": "Post Office", "comm": "2025-10-01", "exp": "2028-09-30", "rent": 2196.15}, {"cc": "10941078", "name": "Post Office Taman Daya", "state": "Johor", "category": "Post Office", "comm": "2026-01-01", "exp": "2028-12-31", "rent": 3500}, {"cc": "10941011", "name": "Post Office Bukit Pasir", "state": "Johor", "category": "Post Office", "comm": "2026-01-01", "exp": "2028-12-31", "rent": 2150}, {"cc": "11141005", "name": "Post Office Bukit Besi", "state": "Terengganu", "category": "Post Office", "comm": "2023-09-01", "exp": "2026-08-31", "rent": 530}, {"cc": "10541089", "name": "Post Office Bandar Seri Putra", "state": "Selangor", "category": "Post Office", "comm": "2023-08-01", "exp": "2026-07-31", "rent": 3080}, {"cc": "11241025", "name": "Post Office Jeli", "state": "Kelantan", "category": "Post Office", "comm": "2025-07-01", "exp": "2028-06-30", "rent": 480}, {"cc": "11241023", "name": "Post Office Jalan Kebun Sultan", "state": "Kelantan", "category": "Post Office", "comm": "2026-02-01", "exp": "2029-01-31", "rent": 3000}, {"cc": "11441064", "name": "Post Office Siburan", "state": "Sarawak", "category": "Post Office", "comm": "2017-01-01", "exp": "2026-12-31", "rent": 1449.46}, {"cc": "11341058", "name": "Post Office Putatan", "state": "Sabah", "category": "Post Office", "comm": "2026-07-01", "exp": "2029-06-30", "rent": 4100}, {"cc": "11341007", "name": "Post Office Bongawan", "state": "Sabah", "category": "Post Office", "comm": "2026-03-01", "exp": "2029-02-28", "rent": 1500}, {"cc": "11341025", "name": "Post Office Papar", "state": "Sabah", "category": "Post Office", "comm": "2026-01-01", "exp": "2028-12-31", "rent": 3300}, {"cc": "11341044", "name": "Post Office Kompleks Pentadbiran Kerajaan Persekutuan (PO KPKP Sabah)", "state": "Sabah", "category": "Post Office", "comm": "2025-11-01", "exp": "2028-10-31", "rent": 730}, {"cc": "11341047", "name": "Post Office Kinabatangan", "state": "Sabah", "category": "Post Office", "comm": "2024-11-01", "exp": "2027-10-31", "rent": 1300}, {"cc": "11341059", "name": "Post Office Pinggan-Pinggan", "state": "Sabah", "category": "Post Office", "comm": "2024-10-01", "exp": "2027-09-30", "rent": 1200}, {"cc": "11341051", "name": "Post Office Telupid", "state": "Sabah", "category": "Post Office", "comm": "2025-03-01", "exp": "2027-02-28", "rent": 5900}, {"cc": "11341060", "name": "Post Office Kaunter Online Pitas", "state": "Sabah", "category": "Post Office", "comm": "2025-11-01", "exp": "2028-10-31", "rent": 770}, {"cc": "11341019", "name": "Post Office LTKK Kota Kinabalu", "state": "Sabah", "category": "Post Office", "comm": "2026-01-01", "exp": "2028-12-31", "rent": 1848}, {"cc": "11312020", "name": "Post Office Semporna", "state": "Sabah", "category": "Post Office", "comm": "2024-07-01", "exp": "2027-06-30", "rent": 3300}, {"cc": "10641052", "name": "Post Office Taman Melawati", "state": "KL", "category": "Post Office", "comm": "2024-10-01", "exp": "2027-09-30", "rent": 6600}, {"cc": "10641011", "name": "Post Office Jalan Gurney", "state": "KL", "category": "Post Office", "comm": "2024-09-01", "exp": "2027-08-31", "rent": 5263}, {"cc": "10641035", "name": "Post Office Bandar Tun Razak", "state": "KL", "category": "Post Office", "comm": "2026-01-01", "exp": "2028-12-31", "rent": 2300}, {"cc": "10641030", "name": "Post Office Bangsar Baru", "state": "KL", "category": "Post Office", "comm": "2025-11-01", "exp": "2028-10-31", "rent": 20900}, {"cc": "10641053", "name": "Post Office Taman Seraya", "state": "Selangor", "category": "Post Office", "comm": "2025-08-01", "exp": "2027-07-31", "rent": 6600}, {"cc": "10641054", "name": "Post Office Taman Sri Gombak", "state": "Selangor", "category": "Post Office", "comm": "2024-03-01", "exp": "2026-08-31", "rent": 6300}, {"cc": "10641055", "name": "Post Office Selayang Baru", "state": "Selangor", "category": "Post Office", "comm": "2026-03-01", "exp": "2028-02-28", "rent": 3300}, {"cc": "10641049", "name": "Post Office Ampang (Spectrum)", "state": "Selangor", "category": "Post Office", "comm": "2026-10-01", "exp": "2028-12-31", "rent": 4392.3}, {"cc": "10641056", "name": "Post Office Sungei Wang Plaza", "state": "KL", "category": "Post Office", "comm": "2024-06-15", "exp": "2027-06-14", "rent": 6045.05}, {"cc": "10641067", "name": "Post Office Mont Kiara", "state": "KL", "category": "Post Office", "comm": "2026-07-01", "exp": "2029-06-30", "rent": 3048}, {"cc": "10641029", "name": "Post Office Taman Tun Dr Ismail\n(TTDI)", "state": "KL", "category": "Post Office", "comm": "2024-04-01", "exp": "2027-03-31", "rent": null}, {"cc": "10641064", "name": "Post Office Desa Pandan", "state": "KL", "category": "Post Office", "comm": "2023-10-01", "exp": "2026-09-30", "rent": 4800}, {"cc": "10641019", "name": "Post Office Petaling", "state": "KL", "category": "Post Office", "comm": "2023-11-01", "exp": "2026-10-31", "rent": 2750}, {"cc": "10641063", "name": "Post Office Suria KLCC", "state": "KL", "category": "Post Office", "comm": "2026-05-26", "exp": "2027-05-25", "rent": 26462.4}, {"cc": "10641069", "name": "Post Office Damai Perdana", "state": "KL", "category": "Post Office", "comm": "2024-10-01", "exp": "2027-09-30", "rent": 4400}, {"cc": "10641005", "name": "Post Office UTC Sentul", "state": "KL", "category": "Post Office", "comm": "2025-03-01", "exp": "2028-02-28", "rent": 1100}, {"cc": "10541113", "name": "Post Office Starling Mall", "state": "Selangor", "category": "Post Office", "comm": "2024-10-16", "exp": "2027-10-15", "rent": 1}, {"cc": "10241042", "name": "Post Office Jeniang", "state": "Kedah", "category": "Post Office", "comm": "2026-06-01", "exp": "2029-05-31", "rent": 136}, {"cc": "10241003", "name": "Post Office Baling", "state": "Kedah", "category": "Post Office", "comm": "2026-08-01", "exp": "2029-07-31", "rent": 1000}, {"cc": "10241049", "name": "Post Office Changloon", "state": "Kedah", "category": "Post Office", "comm": "2024-01-01", "exp": "2026-12-31", "rent": 1500}, {"cc": "10241018", "name": "Post Office Padang Serai", "state": "Kedah", "category": "Post Office", "comm": "2025-01-01", "exp": "2026-12-31", "rent": 1430}, {"cc": "10241012", "name": "Post Office Kuala Ketil", "state": "Kedah", "category": "Post Office", "comm": "2025-04-01", "exp": "2028-03-31", "rent": 2100}, {"cc": "10241051", "name": "Post Office Lubuk Merbau", "state": "Kedah", "category": "Post Office", "comm": "2024-03-01", "exp": "2027-02-28", "rent": 698.78}, {"cc": "10241017", "name": "Post Office Lunas", "state": "Kedah", "category": "Post Office", "comm": "2025-01-01", "exp": "2027-12-31", "rent": 1604.4}, {"cc": "10541076", "name": "Post Office Putrajaya Jabatan Perdana Menteri", "state": "Selangor", "category": "Post Office", "comm": "2024-05-01", "exp": "2027-04-30", "rent": 4000}, {"cc": "10541010", "name": "Post Office UITM Shah Alam", "state": "Selangor", "category": "Post Office", "comm": "2025-01-01", "exp": "2027-12-31", "rent": 1348.6}, {"cc": "10541068", "name": "Post Office Taman Sri Muda", "state": "Selangor", "category": "Post Office", "comm": "2024-08-06", "exp": "2027-08-05", "rent": 2200}, {"cc": "10541062", "name": "Post Office Pasar Besar Klang (No. 67)", "state": "Selangor", "category": "Post Office", "comm": "2026-01-01", "exp": "2028-12-31", "rent": 560}, {"cc": "10541062", "name": "Post Office Pasar Besar Klang (No. 68)", "state": "Selangor", "category": "Post Office", "comm": "2026-01-01", "exp": "2028-12-31", "rent": 560}, {"cc": "10541074", "name": "Post Office Balakong", "state": "Selangor", "category": "Post Office", "comm": "2026-04-01", "exp": "2029-03-31", "rent": 820}, {"cc": "10541058", "name": "Post Office Puchong Perdana", "state": "Selangor", "category": "Post Office", "comm": "2026-07-01", "exp": "2029-06-30", "rent": 1100}, {"cc": "10541080", "name": "Post Office Bukit Dukong", "state": "Selangor", "category": "Post Office", "comm": "2026-05-01", "exp": "2029-04-30", "rent": 900}, {"cc": "10541084", "name": "Post Office Batu 18 Jalan Semenyih Kajang (Bandar Teknologi Kajang)", "state": "Selangor", "category": "Post Office", "comm": "2026-04-01", "exp": "2029-03-31", "rent": 3300}, {"cc": "10541085", "name": "Post Office Bukit Beruntung", "state": "Selangor", "category": "Post Office", "comm": "2024-10-01", "exp": "2027-09-30", "rent": 3650}, {"cc": "10541083", "name": "Post Office Kg. Melayu Subang", "state": "Selangor", "category": "Post Office", "comm": "2024-09-01", "exp": "2027-08-31", "rent": 4180}, {"cc": "10541024", "name": "Post Office Pandamaran", "state": "Selangor", "category": "Post Office", "comm": "2023-10-01", "exp": "2026-09-30", "rent": 3180}, {"cc": "10541039", "name": "Post Office Serendah", "state": "Selangor", "category": "Post Office", "comm": "2025-02-01", "exp": "2028-01-31", "rent": 1040}, {"cc": "10541038", "name": "Post Office Sepang", "state": "Selangor", "category": "Post Office", "comm": "2024-06-01", "exp": "2027-05-31", "rent": 2021.25}, {"cc": "11441007", "name": "Post Office Belaga", "state": "Sarawak", "category": "Post Office", "comm": "2023-11-01", "exp": "2026-10-31", "rent": 840}, {"cc": "10541100", "name": "Post Office One Utama, Bandar Utama", "state": "Selangor", "category": "Post Office", "comm": "2025-08-13", "exp": "2027-08-12", "rent": 1285.5}, {"cc": "10541094", "name": "Post Office USJ 9", "state": "Selangor", "category": "Post Office", "comm": "2023-12-01", "exp": "2026-11-30", "rent": 6380}, {"cc": "10541043", "name": "Post Office SB Mall, Sungai Buloh", "state": "Selangor", "category": "Post Office", "comm": "2024-06-01", "exp": "2027-05-31", "rent": 5040}, {"cc": "10541071", "name": "Post Office Bandar Sunway (Sunway Pyramid)", "state": "Selangor", "category": "Post Office", "comm": "2025-11-01", "exp": "2028-10-31", "rent": 1000}, {"cc": "10541103", "name": "Post Office Bandar Bukit Puchong", "state": "Selangor", "category": "Post Office", "comm": "2026-02-16", "exp": "2028-02-17", "rent": 3700}, {"cc": "10541069", "name": "Post Office Cyberjaya, Shaftsbury", "state": "Selangor", "category": "Post Office", "comm": "2024-01-01", "exp": "2026-12-31", "rent": 2776.65}, {"cc": "11041026", "name": "Post Office Chenor", "state": "Pahang", "category": "Post Office", "comm": "2026-01-01", "exp": "2028-12-31", "rent": 1000}, {"cc": "11041013", "name": "Post Office Karak", "state": "Pahang", "category": "Post Office", "comm": "2026-01-01", "exp": "2028-12-31", "rent": 2728.19}, {"cc": "11041024", "name": "Post Office Triang", "state": "Pahang", "category": "Post Office", "comm": "2024-12-01", "exp": "2027-11-30", "rent": 2612.6}, {"cc": "11041015", "name": "Post Office Kuala Rompin", "state": "Pahang", "category": "Post Office", "comm": "2024-12-01", "exp": "2027-11-30", "rent": 550}, {"cc": "11041047", "name": "Post Office Simpang Pelangai", "state": "Pahang", "category": "Post Office", "comm": "2023-11-01", "exp": "2026-10-31", "rent": 949.85}, {"cc": "11041018", "name": "Post Office Bera (Mengkarak)", "state": "Pahang", "category": "Post Office", "comm": "2024-01-01", "exp": "2026-12-31", "rent": 1260}, {"cc": "11041010", "name": "Post Office Genting Highlands", "state": "Pahang", "category": "Post Office", "comm": "2025-01-01", "exp": "2027-12-31", "rent": 1001.88}, {"cc": "11041025", "name": "Post Office Padang Tengku", "state": "Pahang", "category": "Post Office", "comm": "2024-01-01", "exp": "2026-12-31", "rent": 800}, {"cc": "10541091", "name": "Post Office Aeon Bukit Raja Shopping Centre", "state": "Selangor", "category": "Post Office", "comm": "2026-06-29", "exp": "2029-06-28", "rent": 1425}, {"cc": "10541102", "name": "Post Office Aeon Bukit Tinggi Shopping Centre", "state": "Selangor", "category": "Post Office", "comm": "2025-11-29", "exp": "2028-11-28", "rent": null}, {"cc": "10541098", "name": "Post Office Aeon Taman Equine Shopping Centre", "state": "Selangor", "category": "Post Office", "comm": "2025-08-03", "exp": "2028-08-02", "rent": 1658}, {"cc": "10641047", "name": "Post Office Aeon Mid Valley Shopping Centre", "state": "KL", "category": "Post Office", "comm": "2025-12-17", "exp": "2028-12-16", "rent": 2}, {"cc": "10541096", "name": "Post Office Aeon Cheras Selatan  Shopping Centre", "state": "Selangor", "category": "Post Office", "comm": "2026-01-24", "exp": "2028-01-23", "rent": 918}, {"cc": "10641033", "name": "Post Office Aeon  Taman Maluri Shopping Centre", "state": "KL", "category": "Post Office", "comm": "2024-08-22", "exp": "2027-08-21", "rent": 1}, {"cc": "10641016", "name": "Post Office Aeon Metro Prima Shopping Centre", "state": "KL", "category": "Post Office", "comm": "2024-11-01", "exp": "2026-10-31", "rent": 1}, {"cc": "10641068", "name": "Post Office Aeon AU2 Shopping Centre", "state": "KL", "category": "Post Office", "comm": "2026-07-27", "exp": "2029-07-26", "rent": 1}, {"cc": "10741044", "name": "Post Office Aeon  Seremban 2 Shopping Centre", "state": "Negeri Sembilan", "category": "Post Office", "comm": "2025-06-16", "exp": "2028-06-15", "rent": 1359}, {"cc": "10841029", "name": "Post Office Aeon Melaka Shopping Centre", "state": "Melaka", "category": "Post Office", "comm": "2026-01-07", "exp": "2029-01-06", "rent": 1}, {"cc": "10841015", "name": "Post Office Aeon Bandaraya Melaka Shopping Centre", "state": "Melaka", "category": "Post Office", "comm": "2025-02-05", "exp": "2028-02-04", "rent": 1}, {"cc": "10941090", "name": "Post Office Aeon Tebrau City Shopping Centre", "state": "Johor", "category": "Post Office", "comm": "2026-01-04", "exp": "2029-01-03", "rent": 1}, {"cc": "10941094", "name": "Post Office Aeon Bukit Indah Shopping Centre", "state": "Johor", "category": "Post Office", "comm": "2025-01-01", "exp": "2026-12-31", "rent": 1278}, {"cc": "10541086", "name": "Post Office Aeon Anggun Rawang Shopping Centre\n(AEON Rawang)", "state": "Selangor", "category": "Post Office", "comm": "2026-11-11", "exp": "2028-11-10", "rent": 1076}, {"cc": "10241050", "name": "Post Office Lotus's Sungai Petani", "state": "Kedah", "category": "Post Office", "comm": "2025-07-01", "exp": "2028-06-30", "rent": 594}, {"cc": "10341045", "name": "Post Office Lotus's Penang Egate", "state": "Pulau Pinang", "category": "Post Office", "comm": "2025-12-10", "exp": "2028-12-09", "rent": 817.2}, {"cc": "10541026", "name": "Post Office Lotus's Puchong", "state": "Selangor", "category": "Post Office", "comm": "2025-01-26", "exp": "2028-01-25", "rent": 531.6}, {"cc": "10541088", "name": "Post Office Lotus's Bukit Tinggi (Lotus's Klang)", "state": "Selangor", "category": "Post Office", "comm": "2026-04-09", "exp": "2029-04-08", "rent": 1412.6}, {"cc": "10541092", "name": "Post Office Lotus's Kajang", "state": "Selangor", "category": "Post Office", "comm": "2025-03-04", "exp": "2027-03-03", "rent": 1510.6}, {"cc": "10541090", "name": "Post Office Lotus's Shah Alam", "state": "Selangor", "category": "Post Office", "comm": "2024-05-03", "exp": "2027-05-02", "rent": 2323.1}, {"cc": "10641071", "name": "Post Office Lotus's Ampang", "state": "Selangor", "category": "Post Office", "comm": "2024-07-22", "exp": "2027-07-21", "rent": 1050}, {"cc": "10941091", "name": "Post Office Lotus's Seri Alam, Masai", "state": "Selangor", "category": "Post Office", "comm": "2025-03-29", "exp": "2028-03-28", "rent": 933.6}, {"cc": "10641075", "name": "Post Office Lotus's Extra Selayang", "state": "Selangor", "category": "Post Office", "comm": "2026-01-08", "exp": "2029-01-07", "rent": 1200}, {"cc": "10641076", "name": "Post Office Lotus's Extra Cheras", "state": "KL", "category": "Post Office", "comm": "2026-03-10", "exp": "2029-03-09", "rent": 1701}, {"cc": "10541111", "name": "Post Office Lotus's Rawang", "state": "Selangor", "category": "Post Office", "comm": "2025-01-14", "exp": "2028-01-13", "rent": 1106.4}, {"cc": "10241052", "name": "Post Office Lotus's Mergong", "state": "Kedah", "category": "Post Office", "comm": "2026-05-15", "exp": "2029-05-14", "rent": 1352.4}, {"cc": "10541106", "name": "Post Office Lotus's Setia Alam", "state": "Selangor", "category": "Post Office", "comm": "2023-12-22", "exp": "2026-12-21", "rent": 1552.6}, {"cc": "10341043", "name": "Post Office Lotus's Seberang Jaya", "state": "Pulau Pinang", "category": "Post Office", "comm": "2024-04-01", "exp": "2027-03-31", "rent": 1860.3}, {"cc": "10641077", "name": "Post Office Lotus's Kepong", "state": "KL", "category": "Post Office", "comm": "2026-03-01", "exp": "2029-02-28", "rent": 1390.8}, {"cc": "10441092", "name": "Post Office Lotus's Ipoh", "state": "Perak", "category": "Post Office", "comm": "2023-12-01", "exp": "2026-11-30", "rent": 1638}, {"cc": "10741037", "name": "Post Office Lotus's Lukut", "state": "Negeri Sembilan", "category": "Post Office", "comm": "2026-07-20", "exp": "2029-07-19", "rent": 1974}, {"cc": "10541064", "name": "Post Office Lotus's Mutiara Damansara", "state": "Selangor", "category": "Post Office", "comm": "2025-06-05", "exp": "2027-06-04", "rent": 2288}, {"cc": "10341044", "name": "Post Office AEON Big Penang Prai", "state": "Pulau Pinang", "category": "Post Office", "comm": "2024-01-01", "exp": "2026-12-31", "rent": 430}, {"cc": "10541099", "name": "Post Office AEON Big Klang", "state": "Selangor", "category": "Post Office", "comm": "2024-01-01", "exp": "2026-12-31", "rent": 409}, {"cc": "10541052", "name": "Post Office AEON Big Subang Jaya", "state": "Selangor", "category": "Post Office", "comm": "2024-01-01", "exp": "2026-12-31", "rent": 873}, {"cc": "10641073", "name": "Post Office AEON Big Ampang", "state": "Selangor", "category": "Post Office", "comm": "2024-01-01", "exp": "2026-12-31", "rent": 981}, {"cc": "10641046", "name": "Post Office AEON Big Wangsa Maju", "state": "KL", "category": "Post Office", "comm": "2024-01-01", "exp": "2026-12-31", "rent": 1350}, {"cc": "10641045", "name": "Post Office AEON Big Sri Petaling", "state": "KL", "category": "Post Office", "comm": "2024-01-01", "exp": "2026-12-31", "rent": 2013}, {"cc": "10441803", "name": "Post Office AEON Big Midtown Falim", "state": "Perak", "category": "Post Office", "comm": "2024-08-06", "exp": "2027-08-05", "rent": 1}, {"cc": "10541082", "name": "Post Office Giant Hypermarket Seksyen 13 Shah Alam (Service Charge)", "state": "Selangor", "category": "Post Office", "comm": "2025-06-01", "exp": "2028-05-31", "rent": 1059.8}, {"cc": "10541104", "name": "Post Office Giant Bandar Kinrara", "state": "Selangor", "category": "Post Office", "comm": "2025-07-21", "exp": "2028-07-20", "rent": 1650}, {"cc": "10741045", "name": "Post Office Giant Nilai (Service Charge)", "state": "Negeri Sembilan", "category": "Post Office", "comm": "2023-10-01", "exp": "2026-09-30", "rent": 970}, {"cc": "10741033", "name": "Post Office Giant Senawang (Service Charge)", "state": "Negeri Sembilan", "category": "Post Office", "comm": "2025-03-29", "exp": "2027-03-28", "rent": 538}, {"cc": "10541105", "name": "Post Office Giant Hypermarket Kota Damansara (Service Charge)", "state": "Selangor", "category": "Post Office", "comm": "2024-11-27", "exp": "2027-11-26", "rent": 2175.69}, {"cc": "10541107", "name": "Post Office Giant Hypermarket Putra Height (Service Charge)", "state": "Selangor", "category": "Post Office", "comm": "2025-01-15", "exp": "2028-01-14", "rent": 2451}, {"cc": "10441022", "name": "Post Office Jalan Pasir Puteh", "state": "Perak", "category": "Post Office", "comm": "2026-02-01", "exp": "2029-01-31", "rent": 2310}, {"cc": "10441035", "name": "Post Office Bercham", "state": "Perak", "category": "Post Office", "comm": "2026-05-01", "exp": "2029-04-30", "rent": 1980}, {"cc": "10441024", "name": "Post Office Kg Kepayang", "state": "Perak", "category": "Post Office", "comm": "2026-05-01", "exp": "2029-04-30", "rent": 825}, {"cc": "10441056", "name": "Post Office Tanjung Rambutan", "state": "Perak", "category": "Post Office", "comm": "2026-01-15", "exp": "2029-01-14", "rent": 1711.5}, {"cc": "10441069", "name": "Post Office Kg Koh", "state": "Perak", "category": "Post Office", "comm": "2024-02-01", "exp": "2027-01-31", "rent": 1452}, {"cc": "10441096", "name": "Post Office Proton City", "state": "Perak", "category": "Post Office", "comm": "2025-07-01", "exp": "2028-06-30", "rent": 1067}, {"cc": "10441802", "name": "Post Office D' Mall", "state": "Perak", "category": "Post Office", "comm": "2018-08-15", "exp": "2028-08-14", "rent": 1324}, {"cc": "10521108", "name": "PPL Putrajaya – No. 30", "state": "Selangor", "category": "Pos Laju Centre", "comm": "2026-05-01", "exp": "2029-04-30", "rent": 6000}, {"cc": "10541093, 10521108", "name": "Post Office Presint 3 Putrajaya (formerly known as PPL SC Putrajaya R26)", "state": "Selangor", "category": "Pos Laju Centre", "comm": "2026-03-01", "exp": "2026-12-31", "rent": 21550}, {"cc": "11341049", "name": "Post Office RP Sandakan", "state": "Sabah", "category": "Post Office", "comm": "2024-01-01", "exp": "2026-12-31", "rent": 800}, {"cc": "10541013", "name": "Post Office Amcorp Mall", "state": "Selangor", "category": "Post Office", "comm": "2026-07-01", "exp": "2027-06-30", "rent": 4000}, {"cc": "10741040", "name": "Post Office Pusat Bandar Baru Palong", "state": "Negeri Sembilan", "category": "Post Office", "comm": "2025-09-01", "exp": "2028-08-31", "rent": 800}, {"cc": "10741007", "name": "Post Office Gemas", "state": "Negeri Sembilan", "category": "Post Office", "comm": "2026-05-01", "exp": "2029-04-30", "rent": 3234}, {"cc": "10741013", "name": "Post Office Linggi", "state": "Negeri Sembilan", "category": "Post Office", "comm": "2025-12-01", "exp": "2028-11-30", "rent": 1600}, {"cc": "10741006", "name": "Post Office Simpang Durian", "state": "Negeri Sembilan", "category": "Post Office", "comm": "2025-01-01", "exp": "2027-12-31", "rent": 1133}, {"cc": "10741020", "name": "Post Office Rembau", "state": "Negeri Sembilan", "category": "Post Office", "comm": "2024-03-01", "exp": "2027-02-28", "rent": 2835}, {"cc": "10741029", "name": "Post Office Titi", "state": "Negeri Sembilan", "category": "Post Office", "comm": "2023-11-01", "exp": "2026-10-31", "rent": 950}, {"cc": "10741026", "name": "Post Office Taman Tunku Jaafar", "state": "Negeri Sembilan", "category": "Post Office", "comm": "2025-05-01", "exp": "2028-04-30", "rent": 1180}, {"cc": "10741046", "name": "Post Office Kota Seriemas", "state": "Negeri Sembilan", "category": "Post Office", "comm": "2023-11-01", "exp": "2026-10-31", "rent": 1}, {"cc": "10921104", "name": "PPL Batu Pahat (SC Batu Pahat) No. 69, Lot 3535 LD", "state": "Johor", "category": "Pos Laju Centre", "comm": "2026-04-01", "exp": "2029-03-31", "rent": 2500}, {"cc": "11221401", "name": "PPL Service Centre Giant Tunjung (SC Kelantan)", "state": "Kelantan", "category": "Pos Laju Centre", "comm": "2025-10-15", "exp": "2027-10-14", "rent": 1498.35}, {"cc": "11441003", "name": "Post Office Asajaya", "state": "Sarawak", "category": "Post Office", "comm": "2025-04-01", "exp": "2028-03-31", "rent": 974.05}, {"cc": "11441053", "name": "Post Office Tatau", "state": "Sarawak", "category": "Post Office", "comm": "2025-08-01", "exp": "2028-07-31", "rent": 2200}, {"cc": "11441044", "name": "Post Office Sebuyau", "state": "Sarawak", "category": "Post Office", "comm": "2025-01-01", "exp": "2027-12-31", "rent": 968}, {"cc": "11441072", "name": "Post Office Batu Kawah", "state": "Sarawak", "category": "Post Office", "comm": "2026-04-01", "exp": "2029-03-31", "rent": 2790.66}, {"cc": "11441069", "name": "Post Office Batu Niah", "state": "Sarawak", "category": "Post Office", "comm": "2026-08-01", "exp": "2029-07-31", "rent": 1400}, {"cc": "11441073", "name": "Post Office Morsjaya", "state": "Sarawak", "category": "Post Office", "comm": "2025-06-01", "exp": "2027-05-31", "rent": 1567.5}, {"cc": "11441008", "name": "Post Office Tanjung Manis", "state": "Sarawak", "category": "Post Office", "comm": "2024-01-01", "exp": "2026-12-31", "rent": 880}, {"cc": "11441066", "name": "Post Office Kota Sentosa", "state": "Sarawak", "category": "Post Office", "comm": "2024-06-01", "exp": "2027-05-31", "rent": 2343}, {"cc": "10541101", "name": "Post Office Bandar Tasik Puteri, Rawang", "state": "Selangor", "category": "Post Office", "comm": "2023-10-07", "exp": "2026-10-06", "rent": 3080}, {"cc": "11441077", "name": "Post Office Sg Asap", "state": "Sarawak", "category": "Post Office", "comm": "2024-04-01", "exp": "2027-03-31", "rent": 400}, {"cc": "11441059", "name": "Post Office Tebedu", "state": "Sarawak", "category": "Post Office", "comm": "2024-10-01", "exp": "2027-09-30", "rent": 535}, {"cc": "11441014", "name": "Post Office Debak", "state": "Sarawak", "category": "Post Office", "comm": "2024-10-01", "exp": "2027-09-30", "rent": 501}, {"cc": "11441025", "name": "Post Office Lingga", "state": "Sarawak", "category": "Post Office", "comm": "2024-10-01", "exp": "2027-09-30", "rent": 148}, {"cc": "11441027", "name": "Post Office Lubok Antu", "state": "Sarawak", "category": "Post Office", "comm": "2024-10-01", "exp": "2027-09-30", "rent": 836}, {"cc": "11441038", "name": "Post Office Petra Jaya", "state": "Sarawak", "category": "Post Office", "comm": "2024-10-01", "exp": "2027-09-30", "rent": 1700}, {"cc": "11441039", "name": "Post Office Pusa", "state": "Sarawak", "category": "Post Office", "comm": "2024-10-01", "exp": "2027-09-30", "rent": 602}, {"cc": "11441043", "name": "Post Office Sebauh", "state": "Sarawak", "category": "Post Office", "comm": "2024-10-01", "exp": "2027-09-30", "rent": 380}, {"cc": "11441026", "name": "Post Office Kecil Long Lama", "state": "Sarawak", "category": "Post Office", "comm": "2024-10-01", "exp": "2027-09-30", "rent": 385}, {"cc": "11441050", "name": "Post Office Spaoh", "state": "Sarawak", "category": "Post Office", "comm": "2025-08-01", "exp": "2028-07-31", "rent": 200}, {"cc": "11441013", "name": "Post Office Daro", "state": "Sarawak", "category": "Post Office", "comm": "2024-10-01", "exp": "2027-09-30", "rent": 669}, {"cc": "11441016", "name": "Post Office Julau", "state": "Sarawak", "category": "Post Office", "comm": "2024-10-01", "exp": "2027-09-30", "rent": 279}, {"cc": "11441074", "name": "Post Office Sibu Jaya", "state": "Sarawak", "category": "Post Office", "comm": "2024-04-01", "exp": "2027-03-31", "rent": 2190}, {"cc": "11441040", "name": "Post Office Kecil Roban", "state": "Sarawak", "category": "Post Office", "comm": "2024-10-01", "exp": "2027-09-30", "rent": 232}, {"cc": "10521317", "name": "KIOSK Petronas Prima Saujana 2", "state": "Selangor", "category": "Pos Laju Kiosk", "comm": "2025-01-01", "exp": "2027-12-31", "rent": 1650}, {"cc": "10541094", "name": "Post Office USJ 1, Mydin Mall Subang Jaya", "state": "Selangor", "category": "Post Office", "comm": "2026-07-01", "exp": "2028-12-31", "rent": 0}, {"cc": "10741043", "name": "Post Office Air Kuning Selatan", "state": "Negeri Sembilan", "category": "Post Office", "comm": null, "exp": null, "rent": 0}, {"cc": "10241045", "name": "Post Office Taman Sejati Indah", "state": "Kedah", "category": "Post Office", "comm": null, "exp": null, "rent": 0}, {"cc": "10441073, 10412063", "name": "Post Office Pengkalan TLDM Lumut", "state": "Perak", "category": "Post Office", "comm": null, "exp": null, "rent": 0}, {"cc": "11041034", "name": "Post Office Kompleks Tun Razak", "state": "Pahang", "category": "Post Office", "comm": null, "exp": null, "rent": 0}, {"cc": "11241006, 11212006", "name": "Post Office Kem Desa Pahlawan", "state": "Kelantan", "category": "Post Office", "comm": "2026-03-01", "exp": "2029-02-28", "rent": 850}, {"cc": "11441037, 11412034", "name": "Post Office Kem Penrissen", "state": "Sarawak", "category": "Post Office", "comm": null, "exp": null, "rent": 0}, {"cc": "11341021", "name": "Post Office Lok Kawi", "state": "Sabah", "category": "Post Office", "comm": null, "exp": null, "rent": 0}, {"cc": "10541005", "name": "Post Office Batang Kali", "state": "Selangor", "category": "Post Office", "comm": "2025-05-01", "exp": "2028-04-30", "rent": 1}, {"cc": "10341034", "name": "Post Office D'Piazza Mall", "state": "Pulau Pinang", "category": "Post Office", "comm": "2025-05-01", "exp": "2028-04-30", "rent": 4840}, {"cc": "10541050", "name": "Post Office Atria", "state": "Selangor", "category": "Post Office", "comm": "2025-09-10", "exp": "2028-09-09", "rent": 1159}, {"cc": "10741003", "name": "Post Office Lotus's Bahau", "state": "Negeri Sembilan", "category": "Post Office", "comm": "2025-08-05", "exp": "2028-08-04", "rent": 1086}, {"cc": "10941089", "name": "Post Office Lotus's Mutiara Rini", "state": "Johor", "category": "Post Office", "comm": "2025-05-09", "exp": "2028-05-08", "rent": 1693.2}, {"cc": "10841027", "name": "Post Office Lotus's Melaka Cheng", "state": "Melaka", "category": "Post Office", "comm": "2025-05-03", "exp": "2028-05-02", "rent": 1252.8}, {"cc": "10241028", "name": "Post Office Lotus's Sungai Petani Selatan (SP South)", "state": "Kedah", "category": "Post Office", "comm": "2025-06-01", "exp": "2028-05-31", "rent": 1851.6}, {"cc": "10541078", "name": "Post Office AEON Big Bukit Rimau", "state": "Selangor", "category": "Post Office", "comm": "2025-08-16", "exp": "2028-08-15", "rent": 1}, {"cc": "10541097", "name": "Post Office Plaza Suria Damansara Damai", "state": "Selangor", "category": "Post Office", "comm": "2026-07-01", "exp": "2028-06-30", "rent": 2995}, {"cc": "10541112", "name": "Post Office USJ 19 City Mall", "state": "Selangor", "category": "Post Office", "comm": "2026-01-06", "exp": "2029-01-05", "rent": 998}, {"cc": "10541004", "name": "Post Office Bestari Jaya", "state": "Selangor", "category": "Post Office", "comm": "2025-01-01", "exp": "2026-12-31", "rent": 3000}, {"cc": "10941083", "name": "Post Office Giant Hypermarket Plentong (Service Charge)", "state": "Johor", "category": "Post Office", "comm": "2026-09-14", "exp": "2029-09-13", "rent": 2690.4}, {"cc": "10541049", "name": "Post Office Universiti Putra Malaysia (PO UPM)", "state": "Selangor", "category": "Post Office", "comm": "2025-01-01", "exp": "2027-12-31", "rent": 3040}, {"cc": "10721103", "name": "PPL SC Nilai", "state": "Negeri Sembilan", "category": "Pos Laju Centre", "comm": "2026-05-15", "exp": "2029-05-14", "rent": 3025}, {"cc": "10441012", "name": "Post Office Chemor (relocation)", "state": "Perak", "category": "Post Office", "comm": "2025-12-01", "exp": "2028-11-30", "rent": 1650}]</script>
+<script>
+const BASE_RAW = JSON.parse(document.getElementById('data').textContent);
+let TODAY = new Date(); TODAY.setHours(0,0,0,0);
+
+const FUNNEL_SVG = '<svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M1 2h14l-5.5 6.5V13l-3 2V8.5L1 2z"/></svg>';
+document.querySelectorAll('.filter-btn').forEach(b=> b.innerHTML = FUNNEL_SVG);
+
+/* ================= STORAGE / OVERRIDES LAYER ================= */
+const STORAGE_KEY = 'tenancyWatch_overrides_v1';
+function loadOverrides(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return {added:[], edited:{}, deleted:[], lastEdit:null};
+    const parsed = JSON.parse(raw);
+    return {added:parsed.added||[], edited:parsed.edited||{}, deleted:parsed.deleted||[], lastEdit:parsed.lastEdit||null};
+  }catch(e){ return {added:[], edited:{}, deleted:[], lastEdit:null}; }
+}
+function saveOverrides(){
+  overrides.lastEdit = new Date().toISOString();
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides)); }catch(e){ /* storage unavailable */ }
+  renderLastEditNote();
+}
+let overrides = loadOverrides();
+let SERVER_BASE = null; // when set, this replaces BASE_RAW as the shared starting dataset
+
+function renderLastEditNote(){
+  const editCount = overrides.added.length + Object.keys(overrides.edited).length + overrides.deleted.length;
+  const note = document.getElementById('lastEditNote');
+  const storageNote = document.getElementById('storageNote');
+  if(editCount === 0){
+    note.textContent = '';
+    storageNote.textContent = 'no local edits yet';
+  } else {
+    const when = overrides.lastEdit ? new Date(overrides.lastEdit).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+    note.textContent = `${editCount} local change${editCount!==1?'s':''} saved${when ? ' · last saved '+when : ''}`;
+    storageNote.textContent = `${editCount} local change${editCount!==1?'s':''} saved in this browser`;
+  }
+}
+
+function buildRawData(){
+  const base = SERVER_BASE || BASE_RAW;
+  let rows = base.filter(r => overrides.deleted.indexOf(r.cc) === -1);
+  rows = rows.map(r => overrides.edited[r.cc] ? Object.assign({}, r, overrides.edited[r.cc]) : r);
+  rows = rows.concat(overrides.added);
+  return rows;
+}
+
+/* ================= CALC HELPERS ================= */
+function fmtDate(iso){
+  if(!iso) return '—';
+  const d = new Date(iso+'T00:00:00');
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
+function daysBetween(iso){
+  if(!iso) return null;
+  const d = new Date(iso+'T00:00:00');
+  return Math.round((d - TODAY)/86400000);
+}
+function tierOf(exp, days){
+  if(!exp) return 'noexpiry';
+  if(days < 0) return 'expired';
+  if(days <= 90) return 'urgent';
+  if(days <= 180) return 'approaching';
+  if(days <= 365) return 'upcoming';
+  return 'healthy';
+}
+function bucketOf(exp, days){
+  if(!exp) return 'noexp';
+  if(days < 0) return 'expired';
+  if(days <= 30) return 'b30';
+  if(days <= 60) return 'b60';
+  if(days <= 90) return 'b90';
+  return 'activefar';
+}
+const TIER_COLOR = {urgent:'var(--red)',approaching:'var(--amber)',upcoming:'#3E7BC4',healthy:'var(--green)',expired:'var(--slate)',noexpiry:'var(--blue)'};
+const TIER_LABEL = {urgent:'Urgent',approaching:'Approaching',upcoming:'Upcoming',healthy:'Healthy',expired:'Expired',noexpiry:'No expiry date'};
+
+let RAW = [];
+let data = [];
+function recompute(){
+  RAW = buildRawData();
+  data = RAW.map(r => {
+    const days = daysBetween(r.exp);
+    const bucket = bucketOf(r.exp, days);
+    const statuslabel = bucket === 'expired' ? 'Closed' : 'Active';
+    return Object.assign({}, r, {days, tier: tierOf(r.exp, days), bucket, statuslabel});
+  });
+}
+recompute();
+
+function updateTodayLabel(){
+  document.getElementById('todayLabel').textContent = 'Live · Today: ' + TODAY.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+}
+updateTodayLabel();
+
+/* ================= COLUMN FILTERS ================= */
+const COLUMN_META = {
+  state:   { label:'State',        getVal: d=>d.state },
+  name:    { label:'Outlet Name',  getVal: d=>d.name },
+  category:{ label:'Category',     getVal: d=>d.category },
+  year:    { label:'Expiry Year',  getVal: d=> d.exp ? String(new Date(d.exp).getFullYear()) : 'No expiry' },
+  tier:    { label:'Status',       getVal: d=>TIER_LABEL[d.tier] },
+};
+const selected = { state:null, name:null, category:null, year:null, tier:null };
+
+function allValuesFor(col){
+  const vals = [...new Set(data.map(COLUMN_META[col].getVal))];
+  return vals.sort((a,b)=> a.localeCompare(b, undefined, {numeric:true}));
+}
+
+/* ================= EXECUTIVE SUMMARY STRIP ================= */
+let activeBucket = null;
+const execDefs = [
+  {k:'total', label:'Total Tenancies', calc:()=> data.length},
+  {k:'active', label:'Active', calc:()=> data.filter(d=>['b30','b60','b90','activefar'].includes(d.bucket)).length},
+  {k:'b30', label:'Expiring ≤30 Days', calc:()=> data.filter(d=>d.bucket==='b30').length},
+  {k:'b60', label:'31–60 Days', calc:()=> data.filter(d=>d.bucket==='b60').length},
+  {k:'b90', label:'Expiring 61–90 Days', calc:()=> data.filter(d=>d.bucket==='b90').length},
+  {k:'expired', label:'Expired', calc:()=> data.filter(d=>d.bucket==='expired').length},
+  {k:'noexp', label:'No Expiry Dates', calc:()=> data.filter(d=>d.bucket==='noexp').length},
+  {k:'within90', label:'Total Expires In 90 Days', calc:()=> data.filter(d=>['b30','b60','b90'].includes(d.bucket)).length},
+];
+function renderExecStrip(){
+  const strip = document.getElementById('execStrip');
+  strip.innerHTML = '';
+  execDefs.forEach(ed=>{
+    const el = document.createElement('button');
+    el.className = 'exec-card';
+    el.setAttribute('data-k', ed.k);
+    el.style.cursor = ['total','active','noexp'].includes(ed.k) ? 'default' : 'pointer';
+    el.style.border = '1px solid var(--line)';
+    el.style.textAlign='left';
+    el.style.font='inherit';
+    if(activeBucket === ed.k) el.style.outline = '2px solid var(--navy)';
+    el.innerHTML = `<div class="num">${ed.calc()}</div><div class="lbl">${ed.label}</div>`;
+    if(!['total','active','noexp'].includes(ed.k)){
+      el.onclick = ()=>{
+        activeBucket = activeBucket === ed.k ? null : ed.k;
+        renderExecStrip(); render();
+      };
+    }
+    strip.appendChild(el);
+  });
+}
+
+/* ================= ORIGINAL TIER KPI ROW ================= */
+const kpiRow = document.getElementById('kpiRow');
+const tierDefs = [
+  {tier:'urgent', label:'Urgent', sub:'≤ 90 days'},
+  {tier:'approaching', label:'Approaching', sub:'91–180 days'},
+  {tier:'upcoming', label:'Upcoming', sub:'181–365 days'},
+  {tier:'healthy', label:'Healthy', sub:'> 365 days'},
+];
+let activeTier = null;
+function renderKpis(){
+  kpiRow.innerHTML = '';
+  tierDefs.forEach(td=>{
+    const count = data.filter(d=>d.tier===td.tier).length;
+    const el = document.createElement('button');
+    el.className = 'kpi' + (activeTier===td.tier ? ' active' : '');
+    el.setAttribute('data-tier', td.tier);
+    el.style.border = '1px solid var(--line)';
+    el.style.background = 'var(--panel)';
+    el.style.font = 'inherit';
+    el.innerHTML = `<div class="num">${count}</div><div class="lbl">${td.label}</div><div class="sub">${td.sub}</div>`;
+    el.onclick = ()=>{ activeTier = activeTier===td.tier ? null : td.tier; renderKpis(); render(); };
+    kpiRow.appendChild(el);
+  });
+}
+
+/* ================= CHARTS (pure SVG / DOM — no external library, works fully offline) ================= */
+const NAVY='#12283F', RED='#D64550', AMBER='#E29B3E', GOLD='#B8862E', GREEN='#2F8F6E', BLUE='#3E7BC4', SLATE='#8A93A3';
+
+function svgDonut(segments, size){
+  size = size || 168;
+  const stroke = Math.round(size*0.16);
+  const r = (size-stroke)/2;
+  const c = size/2;
+  const circumference = 2*Math.PI*r;
+  const total = segments.reduce((s,x)=>s+x.value,0) || 1;
+  let offset = 0;
+  let circles = '';
+  segments.forEach(seg=>{
+    if(seg.value <= 0) return;
+    const frac = seg.value/total;
+    const len = Math.max(frac*circumference - 1.5, 0); // small gap between segments
+    circles += `<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${seg.color}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${len} ${circumference-len}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${c} ${c})"></circle>`;
+    offset += frac*circumference;
+  });
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" style="flex-shrink:0;">
+    <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="#EDEAE0" stroke-width="${stroke}"></circle>
+    ${circles}
+    <text x="${c}" y="${c-4}" text-anchor="middle" font-family="'Space Grotesk',sans-serif" font-weight="700" font-size="${Math.round(size*0.15)}" fill="#12283F">${total}</text>
+    <text x="${c}" y="${c+16}" text-anchor="middle" font-family="'Inter',sans-serif" font-size="10" fill="#5B6472">outlets</text>
+  </svg>`;
+}
+
+function renderDonutCard(containerEl, segments){
+  containerEl.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;align-items:center;gap:18px;height:100%;';
+  const svgHolder = document.createElement('div');
+  svgHolder.innerHTML = svgDonut(segments, 158);
+  const legend = document.createElement('div');
+  legend.style.cssText = 'display:flex;flex-direction:column;gap:8px;flex:1;min-width:0;';
+  const total = segments.reduce((s,x)=>s+x.value,0) || 1;
+  segments.forEach(seg=>{
+    const pct = Math.round((seg.value/total)*100);
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink);';
+    row.innerHTML = `<span style="width:10px;height:10px;border-radius:3px;background:${seg.color};flex-shrink:0;"></span>
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${seg.label}</span>
+      <span style="font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);">${seg.value} <span style="opacity:.6;">(${pct}%)</span></span>`;
+    legend.appendChild(row);
+  });
+  wrap.appendChild(svgHolder);
+  wrap.appendChild(legend);
+  containerEl.appendChild(wrap);
+}
+
+function renderVBarChart(containerEl, items, opts){
+  opts = opts || {};
+  containerEl.innerHTML = '';
+  const max = Math.max(1, ...items.map(i=>i.value));
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;align-items:flex-end;gap:'+(opts.gap||6)+'px;height:100%;width:100%;padding:4px 2px 0;';
+  items.forEach(it=>{
+    const col = document.createElement('div');
+    col.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;';
+    const val = document.createElement('div');
+    val.textContent = it.value;
+    val.style.cssText = 'font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--ink-soft);margin-bottom:3px;';
+    const barTrack = document.createElement('div');
+    barTrack.style.cssText = 'width:100%;flex:1;display:flex;align-items:flex-end;max-width:'+(opts.barMaxWidth||30)+'px;';
+    const bar = document.createElement('div');
+    const hpct = Math.max(3, Math.round((it.value/max)*100));
+    bar.style.cssText = `width:100%;height:${hpct}%;background:${it.color||'var(--navy)'};border-radius:4px 4px 0 0;`;
+    barTrack.appendChild(bar);
+    const lbl = document.createElement('div');
+    lbl.textContent = it.label;
+    lbl.title = it.label;
+    lbl.style.cssText = 'font-size:9.5px;color:var(--ink-soft);margin-top:6px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;';
+    col.appendChild(val); col.appendChild(barTrack); col.appendChild(lbl);
+    wrap.appendChild(col);
+  });
+  containerEl.appendChild(wrap);
+}
+
+function renderHBarChart(containerEl, items, opts){
+  opts = opts || {};
+  containerEl.innerHTML = '';
+  const max = Math.max(1, ...items.map(i=>i.value));
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-direction:column;justify-content:space-between;gap:7px;height:100%;overflow-y:auto;padding:2px 4px;';
+  items.forEach(it=>{
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;';
+    const lbl = document.createElement('div');
+    lbl.textContent = it.label;
+    lbl.title = it.label;
+    lbl.style.cssText = `width:${opts.labelWidth||108}px;flex-shrink:0;font-size:11px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
+    const track = document.createElement('div');
+    track.style.cssText = 'flex:1;background:#EDEAE0;border-radius:4px;height:13px;position:relative;overflow:hidden;';
+    const bar = document.createElement('div');
+    const wpct = Math.max(2, Math.round((it.value/max)*100));
+    bar.style.cssText = `height:100%;width:${wpct}%;background:${it.color||'var(--blue)'};border-radius:4px;`;
+    track.appendChild(bar);
+    const val = document.createElement('div');
+    val.textContent = it.value;
+    val.style.cssText = 'width:26px;flex-shrink:0;text-align:right;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-soft);';
+    row.appendChild(lbl); row.appendChild(track); row.appendChild(val);
+    wrap.appendChild(row);
+  });
+  containerEl.appendChild(wrap);
+}
+
+function renderCharts(){
+  document.getElementById('chartTotalN').textContent = data.length + ' outlets';
+
+  // Status donut
+  const b30 = data.filter(d=>d.bucket==='b30').length;
+  const b60 = data.filter(d=>d.bucket==='b60').length;
+  const b90 = data.filter(d=>d.bucket==='b90').length;
+  const expired = data.filter(d=>d.bucket==='expired').length;
+  const noexp = data.filter(d=>d.bucket==='noexp').length;
+  const activefar = data.filter(d=>d.bucket==='activefar').length;
+  renderDonutCard(document.getElementById('statusPie'), [
+    {label:'Healthy (>90d)', value:activefar, color:GREEN},
+    {label:'≤30 days', value:b30, color:RED},
+    {label:'31–60 days', value:b60, color:AMBER},
+    {label:'61–90 days', value:b90, color:GOLD},
+    {label:'Expired', value:expired, color:SLATE},
+    {label:'No expiry date', value:noexp, color:BLUE},
+  ]);
+
+  // Expiring by month (next 12 months)
+  const monthKeys = [], monthLabels = [], monthCounts = [];
+  for(let i=0;i<12;i++){
+    const d = new Date(TODAY.getFullYear(), TODAY.getMonth()+i, 1);
+    const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    monthKeys.push(key);
+    monthLabels.push(d.toLocaleDateString('en-GB',{month:'short', year:'2-digit'}));
+    monthCounts.push(0);
+  }
+  data.forEach(d=>{
+    if(!d.exp || d.days < 0) return;
+    const ed = new Date(d.exp+'T00:00:00');
+    const key = ed.getFullYear()+'-'+String(ed.getMonth()+1).padStart(2,'0');
+    const idx = monthKeys.indexOf(key);
+    if(idx > -1) monthCounts[idx]++;
+  });
+  renderVBarChart(document.getElementById('monthBar'),
+    monthLabels.map((l,i)=>({label:l, value:monthCounts[i], color: i<3?RED:(i<6?AMBER:BLUE)})),
+    {barMaxWidth:28});
+
+  // By category
+  const cats = [...new Set(data.map(d=>d.category))].sort();
+  renderHBarChart(document.getElementById('categoryBar'),
+    cats.map(c=>({label:c, value:data.filter(d=>d.category===c).length, color:NAVY})),
+    {labelWidth:120});
+
+  // By state
+  const states = [...new Set(data.map(d=>d.state))];
+  const paired = states.map(s=>({label:s, value:data.filter(d=>d.state===s).length, color:BLUE}))
+    .sort((a,b)=> b.value-a.value);
+  renderHBarChart(document.getElementById('stateBar'), paired, {labelWidth:100});
+}
+
+/* ================= TABLE FILTER / SORT / RENDER ================= */
+let sortKey = 'days', sortDir = 1;
+
+function currentFilters(){
+  return {
+    q: document.getElementById('search').value.trim().toLowerCase(),
+    group: document.getElementById('groupToggle').checked
+  };
+}
+
+function applyFilters(){
+  const f = currentFilters();
+  return data.filter(d=>{
+    if(f.q && !(d.name.toLowerCase().includes(f.q) || d.cc.toLowerCase().includes(f.q))) return false;
+    for(const col of Object.keys(COLUMN_META)){
+      if(selected[col] && !selected[col].has(COLUMN_META[col].getVal(d))) return false;
+    }
+    if(activeTier && d.tier !== activeTier) return false;
+    if(activeBucket){
+      if(activeBucket === 'within90'){
+        if(!['b30','b60','b90'].includes(d.bucket)) return false;
+      } else if(d.bucket !== activeBucket){
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+function renderChips(){
+  const chipRow = document.getElementById('chipRow');
+  chipRow.innerHTML = '';
+  Object.keys(COLUMN_META).forEach(col=>{
+    if(selected[col]){
+      const n = selected[col].size;
+      const total = allValuesFor(col).length;
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.innerHTML = `${COLUMN_META[col].label}: ${n}/${total} <button aria-label="Clear filter">✕</button>`;
+      chip.querySelector('button').onclick = ()=>{ selected[col] = null; renderChips(); render(); updateFunnelStates(); };
+      chipRow.appendChild(chip);
+    }
+  });
+  if(activeBucket){
+    const labelMap = {b30:'≤30 Days',b60:'31–60 Days',b90:'61–90 Days',expired:'Expired',within90:'Expires in 90 Days'};
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.innerHTML = `Status band: ${labelMap[activeBucket]||activeBucket} <button aria-label="Clear filter">✕</button>`;
+    chip.querySelector('button').onclick = ()=>{ activeBucket=null; renderExecStrip(); renderChips(); render(); };
+    chipRow.appendChild(chip);
+  }
+}
+
+function updateFunnelStates(){
+  document.querySelectorAll('.filter-btn').forEach(btn=>{
+    const col = btn.getAttribute('data-col');
+    btn.classList.toggle('active', !!selected[col]);
+  });
+  const yearBtn = document.getElementById('yearFilterBtn');
+  if(yearBtn){
+    const active = !!selected.year;
+    yearBtn.style.background = active ? '#E3EEFA' : '#fff';
+    yearBtn.style.borderColor = active ? 'var(--navy-2)' : 'var(--line)';
+    yearBtn.style.color = active ? 'var(--navy)' : 'var(--ink)';
+  }
+}
+
+document.getElementById('clearAllBtn').addEventListener('click', ()=>{
+  Object.keys(selected).forEach(k=> selected[k]=null);
+  document.getElementById('search').value='';
+  activeTier = null;
+  activeBucket = null;
+  renderChips(); updateFunnelStates(); renderKpis(); renderExecStrip(); render();
+});
+
+let openPopoverCol = null;
+function closePopover(){
+  const existing = document.querySelector('.filter-pop');
+  if(existing) existing.remove();
+  openPopoverCol = null;
+}
+function openPopover(col, btnEl){
+  closePopover();
+  openPopoverCol = col;
+  const values = allValuesFor(col);
+  const currentlySelected = selected[col] ? new Set(selected[col]) : new Set(values);
+
+  const pop = document.createElement('div');
+  pop.className = 'filter-pop';
+  pop.innerHTML = `
+    <div class="fp-search"><input type="text" placeholder="Search ${COLUMN_META[col].label.toLowerCase()}…"></div>
+    <div class="fp-actions"><button data-act="all">Select all</button><button data-act="none">Clear</button></div>
+    <div class="fp-list"></div>
+    <div class="fp-footer"><button data-act="cancel">Cancel</button><button data-act="apply" class="primary">Apply</button></div>
+  `;
+  document.body.appendChild(pop);
+  const rect = btnEl.getBoundingClientRect();
+  let top = rect.bottom + 6, left = rect.left - 180;
+  if(left < 8) left = 8;
+  if(top + 340 > window.innerHeight) top = rect.top - 340;
+  pop.style.top = top + 'px';
+  pop.style.left = left + 'px';
+
+  const listEl = pop.querySelector('.fp-list');
+  function renderList(filterText){
+    listEl.innerHTML = '';
+    values.filter(v=> !filterText || v.toLowerCase().includes(filterText.toLowerCase())).forEach(v=>{
+      const id = 'fp_' + col + '_' + v.replace(/\W+/g,'_');
+      const lab = document.createElement('label');
+      lab.innerHTML = `<input type="checkbox" id="${id}" ${currentlySelected.has(v)?'checked':''}> <span>${v}</span>`;
+      lab.querySelector('input').addEventListener('change', e=>{
+        if(e.target.checked) currentlySelected.add(v); else currentlySelected.delete(v);
+      });
+      listEl.appendChild(lab);
+    });
+  }
+  renderList('');
+  pop.querySelector('.fp-search input').addEventListener('input', e=> renderList(e.target.value));
+  pop.querySelector('[data-act="all"]').onclick = ()=>{ values.forEach(v=>currentlySelected.add(v)); renderList(pop.querySelector('.fp-search input').value); };
+  pop.querySelector('[data-act="none"]').onclick = ()=>{ currentlySelected.clear(); renderList(pop.querySelector('.fp-search input').value); };
+  pop.querySelector('[data-act="cancel"]').onclick = closePopover;
+  pop.querySelector('[data-act="apply"]').onclick = ()=>{
+    selected[col] = currentlySelected.size === values.length ? null : new Set(currentlySelected);
+    closePopover(); renderChips(); updateFunnelStates(); render();
+  };
+}
+document.querySelectorAll('.filter-btn').forEach(btn=>{
+  btn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const col = btn.getAttribute('data-col');
+    if(openPopoverCol === col) closePopover();
+    else openPopover(col, btn);
+  });
+});
+document.getElementById('yearFilterBtn').addEventListener('click', e=>{
+  e.stopPropagation();
+  const col = 'year';
+  if(openPopoverCol === col) closePopover();
+  else openPopover(col, e.currentTarget);
+});
+document.addEventListener('click', e=>{
+  if(openPopoverCol && !e.target.closest('.filter-pop')) closePopover();
+});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closePopover(); });
+
+function sortRows(rows){
+  return rows.sort((a,b)=>{
+    let av=a[sortKey], bv=b[sortKey];
+    if(sortKey==='comm' || sortKey==='exp'){ av=av?new Date(av):new Date(8640000000000000); bv=bv?new Date(bv):new Date(8640000000000000); }
+    if(typeof av === 'string') av = av.toLowerCase();
+    if(typeof bv === 'string') bv = bv.toLowerCase();
+    if(av==null) av = -Infinity;
+    if(bv==null) bv = -Infinity;
+    if(av<bv) return -1*sortDir;
+    if(av>bv) return 1*sortDir;
+    return 0;
+  });
+}
+
+function catClass(cat){ return 'cat-' + cat.replace(/\s+/g,'-'); }
+
+const editSvg = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 2l3 3-8 8-3.5 1 1-3.5 8-8z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+const trashSvg = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h10M6 4V2.5h4V4M4 4l.6 9.2A1 1 0 0 0 5.6 14h4.8a1 1 0 0 0 1-.8L12 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function rowHTML(d){
+  const pct = Math.max(0, Math.min(100, 100 - (d.days/1095*100)));
+  const barPct = d.days==null ? 0 : (d.days < 0 ? 100 : Math.min(100, pct));
+  return `<tr data-cc="${d.cc}">
+    <td class="mono">${d.state}</td>
+    <td class="name">${d.name}<br><span class="cc">${d.cc}</span></td>
+    <td><span class="cat-badge ${catClass(d.category)}">${d.category}</span></td>
+    <td class="mono">${fmtDate(d.comm)}</td>
+    <td class="mono">${fmtDate(d.exp)}</td>
+    <td class="runway-cell">
+      <span class="days-badge tier-${d.tier}">${d.days==null ? 'No expiry' : (d.days<0 ? Math.abs(d.days)+'d overdue' : d.days+'d left')}</span>
+      <div class="runway"><div class="fill" style="width:${barPct}%;background:${TIER_COLOR[d.tier]}"></div></div>
+      <div class="runway-meta"><span>${TIER_LABEL[d.tier]}</span><span>${fmtDate(d.exp)}</span></div>
+    </td>
+    <td class="mono">${d.rent!=null ? Number(d.rent).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>
+    <td><span class="status-badge ${d.statuslabel==='Closed'?'closed':'active'}">${d.statuslabel}</span></td>
+    <td><div class="row-actions admin-only" style="display:none;">
+      <button class="icon-btn edit-row" title="Edit" aria-label="Edit tenancy">${editSvg}</button>
+      <button class="icon-btn danger delete-row" title="Delete" aria-label="Delete tenancy">${trashSvg}</button>
+    </div></td>
+  </tr>`;
+}
+
+function attachRowHandlers(){
+  document.querySelectorAll('.edit-row').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const cc = btn.closest('tr').getAttribute('data-cc');
+      const rec = data.find(d=>d.cc===cc);
+      if(rec) openModal('edit', rec);
+    });
+  });
+  document.querySelectorAll('.delete-row').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const cc = btn.closest('tr').getAttribute('data-cc');
+      const rec = data.find(d=>d.cc===cc);
+      if(rec) confirmDelete(rec);
+    });
+  });
+}
+
+function render(){
+  const tbody = document.getElementById('tbody');
+  const emptyState = document.getElementById('emptyState');
+  let rows = applyFilters();
+  document.getElementById('countNote').textContent = `${rows.length} of ${data.length} outlets shown`;
+
+  if(rows.length === 0){
+    tbody.innerHTML = '';
+    emptyState.style.display = 'block';
+    return;
+  }
+  emptyState.style.display = 'none';
+
+  const f = currentFilters();
+  if(f.group){
+    const byState = {};
+    rows.forEach(r=>{ (byState[r.state] = byState[r.state]||[]).push(r); });
+    const stateOrder = Object.keys(byState).sort((a,b)=> byState[b].length - byState[a].length);
+    let html = '';
+    stateOrder.forEach(st=>{
+      const grp = sortRows(byState[st].slice());
+      html += `<tr class="group-row"><td colspan="9">${st} <span class="g-count">${grp.length} outlet${grp.length!==1?'s':''}</span></td></tr>`;
+      grp.forEach(d=> html += rowHTML(d));
+    });
+    tbody.innerHTML = html;
+  } else {
+    rows = sortRows(rows.slice());
+    tbody.innerHTML = rows.map(rowHTML).join('');
+  }
+  attachRowHandlers();
+  applyAdminVisibility();
+}
+
+document.querySelectorAll('thead th[data-key]').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const key = th.getAttribute('data-key');
+    if(sortKey === key){ sortDir *= -1; } else { sortKey = key; sortDir = 1; }
+    render();
+  });
+});
+
+document.getElementById('search').addEventListener('input', render);
+document.getElementById('groupToggle').addEventListener('change', render);
+
+/* ================= ADD / EDIT / DELETE MODAL ================= */
+const modalOverlay = document.getElementById('modalOverlay');
+const modalTitle = document.getElementById('modalTitle');
+const deleteInModal = document.getElementById('deleteInModal');
+let modalMode = 'add';
+let modalEditingCc = null;
+
+function populateStateOptions(){
+  const sel = document.getElementById('f_state');
+  const states = [...new Set(BASE_RAW.map(d=>d.state))].sort();
+  sel.innerHTML = states.map(s=>`<option value="${s}">${s}</option>`).join('') + `<option value="__other__">Other (type new)…</option>`;
+}
+populateStateOptions();
+
+function openModal(mode, rec){
+  modalMode = mode;
+  document.getElementById('formError').textContent = '';
+  if(mode === 'add'){
+    modalTitle.textContent = 'Add Tenancy';
+    deleteInModal.style.display = 'none';
+    modalEditingCc = null;
+    document.getElementById('f_name').value = '';
+    document.getElementById('f_cc').value = '';
+    document.getElementById('f_cc').disabled = false;
+    populateStateOptions();
+    document.getElementById('f_state').value = document.getElementById('f_state').options[0]?.value || '';
+    document.getElementById('f_category').value = 'Post Office';
+    document.getElementById('f_rent').value = '';
+    document.getElementById('f_comm').value = '';
+    document.getElementById('f_exp').value = '';
+    document.getElementById('f_noexp').checked = false;
+    document.getElementById('f_exp').disabled = false;
+  } else {
+    modalTitle.textContent = 'Edit Tenancy — ' + rec.name;
+    deleteInModal.style.display = 'inline-flex';
+    modalEditingCc = rec.cc;
+    document.getElementById('f_name').value = rec.name;
+    document.getElementById('f_cc').value = rec.cc;
+    document.getElementById('f_cc').disabled = true;
+    populateStateOptions();
+    if(![...document.getElementById('f_state').options].some(o=>o.value===rec.state)){
+      const opt = document.createElement('option'); opt.value = rec.state; opt.textContent = rec.state;
+      document.getElementById('f_state').insertBefore(opt, document.getElementById('f_state').firstChild);
+    }
+    document.getElementById('f_state').value = rec.state;
+    document.getElementById('f_category').value = rec.category;
+    document.getElementById('f_rent').value = rec.rent!=null ? rec.rent : '';
+    document.getElementById('f_comm').value = rec.comm || '';
+    document.getElementById('f_exp').value = rec.exp || '';
+    document.getElementById('f_noexp').checked = !rec.exp;
+    document.getElementById('f_exp').disabled = !rec.exp;
+  }
+  modalOverlay.classList.add('open');
+  document.getElementById('f_name').focus();
+}
+function closeModal(){ modalOverlay.classList.remove('open'); }
+
+document.getElementById('addBtn').addEventListener('click', ()=> openModal('add', null));
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('cancelBtn').addEventListener('click', closeModal);
+modalOverlay.addEventListener('click', e=>{ if(e.target === modalOverlay) closeModal(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && modalOverlay.classList.contains('open')) closeModal(); });
+
+document.getElementById('f_noexp').addEventListener('change', e=>{
+  document.getElementById('f_exp').disabled = e.target.checked;
+  if(e.target.checked) document.getElementById('f_exp').value = '';
+});
+document.getElementById('f_state').addEventListener('change', e=>{
+  if(e.target.value === '__other__'){
+    const custom = prompt('Enter new state name:');
+    if(custom){
+      const opt = document.createElement('option'); opt.value = custom; opt.textContent = custom;
+      e.target.insertBefore(opt, e.target.lastChild);
+      e.target.value = custom;
+    } else {
+      e.target.value = e.target.options[0].value;
+    }
+  }
+});
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._tm);
+  showToast._tm = setTimeout(()=> t.classList.remove('show'), 2600);
+}
+
+document.getElementById('saveBtn').addEventListener('click', ()=>{
+  const name = document.getElementById('f_name').value.trim();
+  const cc = document.getElementById('f_cc').value.trim();
+  const state = document.getElementById('f_state').value;
+  const category = document.getElementById('f_category').value;
+  const rentRaw = document.getElementById('f_rent').value;
+  const rent = rentRaw === '' ? null : Number(rentRaw);
+  const comm = document.getElementById('f_comm').value;
+  const noexp = document.getElementById('f_noexp').checked;
+  const exp = noexp ? null : (document.getElementById('f_exp').value || null);
+  const errEl = document.getElementById('formError');
+
+  if(!name || !cc || !state || !category || !comm){
+    errEl.textContent = 'Please complete all required fields marked with *.';
+    return;
+  }
+  if(!noexp && exp && comm && new Date(exp) < new Date(comm)){
+    errEl.textContent = 'Expiry date cannot be before the commencement date.';
+    return;
+  }
+  if(modalMode === 'add'){
+    const existsInBase = BASE_RAW.some(r=>r.cc===cc);
+    const existsInAdded = overrides.added.some(r=>r.cc===cc);
+    if(existsInBase || existsInAdded){
+      errEl.textContent = 'A tenancy with this cost centre already exists. Use Edit instead, or use a unique cost centre.';
+      return;
+    }
+    overrides.added.push({cc, name, state, category, comm, exp, rent});
+    saveOverrides();
+    logActivity('added', cc, name);
+    showToast('Tenancy added.');
+  } else {
+    const addedIdx = overrides.added.findIndex(r=>r.cc===modalEditingCc);
+    if(addedIdx > -1){
+      overrides.added[addedIdx] = {cc: modalEditingCc, name, state, category, comm, exp, rent};
+    } else {
+      overrides.edited[modalEditingCc] = {name, state, category, comm, exp, rent};
+    }
+    saveOverrides();
+    logActivity('edited', modalEditingCc, name);
+    showToast('Tenancy updated.');
+  }
+  closeModal();
+  recompute();
+  renderExecStrip(); renderKpis(); renderCharts(); renderChips(); updateFunnelStates(); render();
+});
+
+let pendingDeleteRec = null;
+function confirmDelete(rec){
+  pendingDeleteRec = rec;
+  document.getElementById('deleteConfirmText').textContent = `Remove "${rec.name}" (${rec.cc}) from the shared register?`;
+  document.getElementById('deleteConfirmOverlay').classList.add('open');
+}
+document.getElementById('deleteConfirmClose').addEventListener('click', ()=>{ pendingDeleteRec = null; document.getElementById('deleteConfirmOverlay').classList.remove('open'); });
+document.getElementById('deleteConfirmCancelBtn').addEventListener('click', ()=>{ pendingDeleteRec = null; document.getElementById('deleteConfirmOverlay').classList.remove('open'); });
+document.getElementById('deleteConfirmYesBtn').addEventListener('click', ()=>{
+  const rec = pendingDeleteRec;
+  document.getElementById('deleteConfirmOverlay').classList.remove('open');
+  if(!rec) return;
+  const addedIdx = overrides.added.findIndex(r=>r.cc===rec.cc);
+  if(addedIdx > -1){
+    overrides.added.splice(addedIdx,1);
+  } else {
+    if(overrides.deleted.indexOf(rec.cc)===-1) overrides.deleted.push(rec.cc);
+    delete overrides.edited[rec.cc];
+  }
+  saveOverrides();
+  logActivity('deleted', rec.cc, rec.name);
+  showToast('Tenancy removed.');
+  pendingDeleteRec = null;
+  recompute();
+  renderExecStrip(); renderKpis(); renderCharts(); renderChips(); updateFunnelStates(); render();
+});
+deleteInModal.addEventListener('click', ()=>{
+  const rec = data.find(d=>d.cc===modalEditingCc);
+  closeModal();
+  if(rec) confirmDelete(rec);
+});
+
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  if(!confirm('This clears all locally saved additions and edits in this browser and restores the original register. Continue?')) return;
+  overrides = {added:[], edited:{}, deleted:[], lastEdit:null};
+  saveOverrides();
+  showToast('Local edits cleared.');
+  recompute();
+  renderExecStrip(); renderKpis(); renderCharts(); renderChips(); updateFunnelStates(); render();
+});
+
+/* ================= EXPORT TO EXCEL (pure JS .xlsx writer — no external library) ================= */
+function crc32(buf){
+  if(!crc32.table){
+    const t = [];
+    for(let n=0;n<256;n++){
+      let c = n;
+      for(let k=0;k<8;k++){ c = (c&1) ? (0xEDB88320 ^ (c>>>1)) : (c>>>1); }
+      t[n] = c>>>0;
+    }
+    crc32.table = t;
+  }
+  let crc = 0 ^ (-1);
+  for(let i=0;i<buf.length;i++){ crc = (crc>>>8) ^ crc32.table[(crc ^ buf[i]) & 0xFF]; }
+  return (crc ^ (-1)) >>> 0;
+}
+function xutf8(str){ return new TextEncoder().encode(str); }
+function xle16(n){ return new Uint8Array([n&0xFF,(n>>>8)&0xFF]); }
+function xle32(n){ return new Uint8Array([n&0xFF,(n>>>8)&0xFF,(n>>>16)&0xFF,(n>>>24)&0xFF]); }
+function xconcat(arrays){
+  let len=0; arrays.forEach(a=>len+=a.length);
+  const out = new Uint8Array(len);
+  let off=0; arrays.forEach(a=>{ out.set(a,off); off+=a.length; });
+  return out;
+}
+function buildZipBlob(files){
+  const localParts=[], centralParts=[];
+  let offset=0;
+  files.forEach(f=>{
+    const nameBytes = xutf8(f.name);
+    const dataBytes = xutf8(f.content);
+    const crc = crc32(dataBytes);
+    const localHeader = xconcat([
+      xle32(0x04034b50), xle16(20), xle16(0x0800), xle16(0), xle16(0), xle16(0x21),
+      xle32(crc), xle32(dataBytes.length), xle32(dataBytes.length),
+      xle16(nameBytes.length), xle16(0)
+    ]);
+    localParts.push(localHeader, nameBytes, dataBytes);
+    const localLen = localHeader.length + nameBytes.length + dataBytes.length;
+    const centralHeader = xconcat([
+      xle32(0x02014b50), xle16(20), xle16(20), xle16(0x0800), xle16(0), xle16(0), xle16(0x21),
+      xle32(crc), xle32(dataBytes.length), xle32(dataBytes.length),
+      xle16(nameBytes.length), xle16(0), xle16(0), xle16(0), xle16(0), xle32(0), xle32(offset)
+    ]);
+    centralParts.push(centralHeader, nameBytes);
+    offset += localLen;
+  });
+  const centralDirStart = offset;
+  let centralDirSize = 0; centralParts.forEach(p=>centralDirSize+=p.length);
+  const eocd = xconcat([
+    xle32(0x06054b50), xle16(0), xle16(0), xle16(files.length), xle16(files.length),
+    xle32(centralDirSize), xle32(centralDirStart), xle16(0)
+  ]);
+  return new Blob([...localParts, ...centralParts, eocd], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function xmlEscape(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+}
+function colLetter(n){ let s=''; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); } return s; }
+function buildSheetXML(headers, rows){
+  let xmlRows = '';
+  const hcells = headers.map((h,i)=> `<c r="${colLetter(i+1)}1" t="inlineStr" s="1"><is><t>${xmlEscape(h)}</t></is></c>`).join('');
+  xmlRows += `<row r="1">${hcells}</row>`;
+  rows.forEach((row, ridx)=>{
+    const r = ridx+2;
+    const cells = row.map((cell,i)=>{
+      const ref = colLetter(i+1)+r;
+      if(cell.type==='n' && cell.v!==''){ return `<c r="${ref}"><v>${cell.v}</v></c>`; }
+      return `<c r="${ref}" t="inlineStr"><is><t>${xmlEscape(String(cell.v))}</t></is></c>`;
+    }).join('');
+    xmlRows += `<row r="${r}">${cells}</row>`;
+  });
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${xmlRows}</sheetData></worksheet>`;
+}
+const XLSX_CONTENT_TYPES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>`;
+const XLSX_RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`;
+const XLSX_WORKBOOK = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets><sheet name="Tenancy Register" sheetId="1" r:id="rId1"/><sheet name="Executive Summary" sheetId="2" r:id="rId2"/></sheets>
+</workbook>`;
+const XLSX_WORKBOOK_RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>
+<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`;
+const XLSX_STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>
+<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>
+<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>
+</styleSheet>`;
+
+document.getElementById('exportExcelBtn').addEventListener('click', ()=>{
+  try{
+    const rows = sortRows(applyFilters().slice());
+    const headers = ['State','Outlet Name','Cost Centre','Category','Commencement','Expiry Date','Days To Expiry','Status','Rent / Month (RM)'];
+    const dataRows = rows.map(d=>[
+      {type:'s', v:d.state},
+      {type:'s', v:d.name},
+      {type:'s', v:d.cc},
+      {type:'s', v:d.category},
+      {type:'s', v: d.comm ? fmtDate(d.comm) : ''},
+      {type:'s', v: d.exp ? fmtDate(d.exp) : 'No expiry date'},
+      {type: d.days==null ? 's' : 'n', v: d.days==null ? '' : d.days},
+      {type:'s', v: TIER_LABEL[d.tier]},
+      {type: d.rent!=null ? 'n' : 's', v: d.rent!=null ? d.rent : ''}
+    ]);
+    const sheet1 = buildSheetXML(headers, dataRows);
+    const summaryRows = execDefs.map(ed=> [{type:'s', v: ed.label}, {type:'n', v: ed.calc()}]);
+    const sheet2 = buildSheetXML(['Metric','Value'], summaryRows);
+
+    const blob = buildZipBlob([
+      {name:'[Content_Types].xml', content: XLSX_CONTENT_TYPES},
+      {name:'_rels/.rels', content: XLSX_RELS},
+      {name:'xl/workbook.xml', content: XLSX_WORKBOOK},
+      {name:'xl/_rels/workbook.xml.rels', content: XLSX_WORKBOOK_RELS},
+      {name:'xl/styles.xml', content: XLSX_STYLES},
+      {name:'xl/worksheets/sheet1.xml', content: sheet1},
+      {name:'xl/worksheets/sheet2.xml', content: sheet2},
+    ]);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = TODAY.toISOString().slice(0,10);
+    a.href = url; a.download = `Tenancy_Expiry_Watch_${stamp}.xlsx`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=> URL.revokeObjectURL(url), 4000);
+    showToast('Excel file downloaded.');
+  }catch(err){
+    console.error('Excel export failed:', err);
+    alert('Sorry, the Excel export ran into a problem. Please try again, or use Print / Save as PDF instead.');
+  }
+});
+
+/* ================= PRINT / PDF ================= */
+document.getElementById('printBtn').addEventListener('click', ()=> window.print());
+
+/* ================= LIVE DAILY REFRESH ================= */
+function checkDateRollover(){
+  const now = new Date(); now.setHours(0,0,0,0);
+  if(now.getTime() !== TODAY.getTime()){
+    TODAY = now;
+    updateTodayLabel();
+    recompute();
+    renderExecStrip(); renderKpis(); renderCharts(); render();
+    renderAutomationPanel();
+    showToast('Date changed — figures refreshed.');
+  }
+}
+setInterval(checkDateRollover, 60*1000);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) checkDateRollover(); });
+
+/* ---------- Admin / Viewer mode ---------- */
+const ADMIN_FLAG_KEY = 'tenancyWatch_isAdmin_v1';
+const ADMIN_NAME_KEY = 'tenancyWatch_adminName_v1';
+const ADMIN_CONTACT_KEY = 'tenancyWatch_adminContact_v1';
+let isAdmin = (localStorage.getItem(ADMIN_FLAG_KEY) === 'true');
+let adminName = localStorage.getItem(ADMIN_NAME_KEY) || '';
+let adminContact = localStorage.getItem(ADMIN_CONTACT_KEY) || '';
+
+function applyAdminVisibility(){
+  document.querySelectorAll('.admin-only').forEach(el=>{
+    el.style.display = isAdmin ? 'inline-flex' : 'none';
+  });
+  const pill = document.getElementById('modePill');
+  pill.textContent = isAdmin ? `Admin — ${adminName || 'Unnamed'}` : 'Viewer';
+  pill.className = 'mode-pill' + (isAdmin ? ' admin' : '');
+  document.getElementById('adminLoginBtn').style.display = isAdmin ? 'none' : 'inline-flex';
+}
+
+const adminLoginOverlay = document.getElementById('adminLoginOverlay');
+document.getElementById('adminLoginBtn').addEventListener('click', ()=>{
+  document.getElementById('adminNameInput').value = adminName;
+  document.getElementById('adminContactInput').value = adminContact;
+  document.getElementById('adminPasswordInput').value = '';
+  document.getElementById('adminLoginError').textContent = '';
+  adminLoginOverlay.classList.add('open');
+});
+document.getElementById('adminLoginClose').addEventListener('click', ()=> adminLoginOverlay.classList.remove('open'));
+document.getElementById('adminLoginCancelBtn').addEventListener('click', ()=> adminLoginOverlay.classList.remove('open'));
+document.getElementById('adminPasswordInput').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') document.getElementById('adminLoginSubmitBtn').click();
+});
+document.getElementById('adminLoginSubmitBtn').addEventListener('click', async ()=>{
+  const nameVal = document.getElementById('adminNameInput').value.trim();
+  const contactVal = document.getElementById('adminContactInput').value.trim();
+  const pwd = document.getElementById('adminPasswordInput').value;
+  const errEl = document.getElementById('adminLoginError');
+  if(!nameVal || !contactVal){ errEl.textContent = 'Please enter your name and a contact (email or phone) — this is recorded against any changes you make.'; return; }
+  if(!pwd){ errEl.textContent = 'Enter the admin password.'; return; }
+  errEl.textContent = 'Checking…';
+  try{
+    const res = await fetch(emailConfig.serverUrl + '/api/admin/verify', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: pwd })
+    });
+    const json = await res.json().catch(()=>({}));
+    if(res.ok && json.ok){
+      isAdmin = true;
+      adminName = nameVal;
+      adminContact = contactVal;
+      try{
+        localStorage.setItem(ADMIN_FLAG_KEY, 'true');
+        localStorage.setItem(ADMIN_NAME_KEY, adminName);
+        localStorage.setItem(ADMIN_CONTACT_KEY, adminContact);
+      }catch(e){}
+      adminLoginOverlay.classList.remove('open');
+      applyAdminVisibility();
+      showToast(`Logged in as Admin (${adminName}).`);
+    } else {
+      errEl.textContent = json.error || 'Incorrect password.';
+    }
+  }catch(e){
+    errEl.textContent = 'Could not reach the automation server to verify the password.';
+  }
+});
+document.getElementById('adminLogoutBtn').addEventListener('click', ()=>{
+  isAdmin = false;
+  try{ localStorage.setItem(ADMIN_FLAG_KEY, 'false'); }catch(e){}
+  applyAdminVisibility();
+  showToast('Switched to Viewer mode.');
+});
+
+/* ---------- Activity log: record who added/edited/deleted what ---------- */
+async function logActivity(action, cc, name){
+  if(!emailConfig.serverUrl) return;
+  try{
+    await fetch(emailConfig.serverUrl + '/api/editlog', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action, cc, name, adminName, adminContact })
+    });
+  }catch(e){ /* non-critical — don't block the user's edit if logging fails */ }
+}
+function fmtLogTime(iso){
+  try{ return new Date(iso).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
+  catch(e){ return iso; }
+}
+async function openActivityLog(){
+  const listEl = document.getElementById('activityLogList');
+  listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink-soft);font-size:13px;">Loading…</div>';
+  document.getElementById('activityLogOverlay').classList.add('open');
+  if(!emailConfig.serverUrl){
+    listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink-soft);font-size:13px;">No automation server configured.</div>';
+    return;
+  }
+  try{
+    const res = await fetch(emailConfig.serverUrl + '/api/editlog');
+    const log = await res.json();
+    if(!Array.isArray(log) || log.length === 0){
+      listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink-soft);font-size:13px;">No changes recorded yet.</div>';
+      return;
+    }
+    listEl.innerHTML = log.slice(0, 200).map(e=>{
+      const verb = e.action === 'added' ? 'Added' : (e.action === 'deleted' ? 'Deleted' : 'Edited');
+      return `<div class="activity-entry">
+        <span class="activity-badge ${e.action}">${e.action}</span>
+        <div class="activity-main">
+          <div class="activity-title">${verb} "${htmlEscape(e.name||e.cc)}" (${htmlEscape(e.cc)})</div>
+          <div class="activity-meta">${htmlEscape(e.adminName)} · ${htmlEscape(e.adminContact)} · ${fmtLogTime(e.timestamp)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink-soft);font-size:13px;">Could not load the activity log — check your connection.</div>';
+  }
+}
+document.getElementById('activityLogBtn').addEventListener('click', openActivityLog);
+document.getElementById('activityLogClose').addEventListener('click', ()=> document.getElementById('activityLogOverlay').classList.remove('open'));
+document.getElementById('activityLogCloseBtn2').addEventListener('click', ()=> document.getElementById('activityLogOverlay').classList.remove('open'));
+
+/* ================================================================
+   MANAGEMENT EMAIL AUTOMATION
+   ----------------------------------------------------------------
+   Everything below is additive: it reuses the existing `data`,
+   `execDefs`, `fmtDate`, `TIER_LABEL`, `saveOverrides` etc. defined
+   above and does not alter any existing calculation.
+   ================================================================ */
+
+const EMAIL_CONFIG_KEY = 'tenancyWatch_emailConfig_v1';
+const DEFAULT_EMAIL_CONFIG = {
+  managementRecipients: [
+    'shafinah@pos.com.my',
+    'dzhuda@pos.com.my',
+    'christina.hod@pos.com.my',
+    'rivaldo@pos.com.my'
+  ],
+  ccRecipients: [],
+  day: 'Monday',
+  time: '08:00',
+  urgentThresholdDays: 30,
+  subjectPrefix: 'Weekly Tenancy Renewal Status',
+  serverUrl: 'https://tenancy-email-automation.onrender.com',
+  autoSendEnabled: true,
+  testMode: false
+};
+function loadEmailConfig(){
+  try{
+    const raw = localStorage.getItem(EMAIL_CONFIG_KEY);
+    if(!raw) return Object.assign({}, DEFAULT_EMAIL_CONFIG);
+    const parsed = JSON.parse(raw);
+    return Object.assign({}, DEFAULT_EMAIL_CONFIG, parsed);
+  }catch(e){ return Object.assign({}, DEFAULT_EMAIL_CONFIG); }
+}
+function saveEmailConfig(cfg){
+  try{ localStorage.setItem(EMAIL_CONFIG_KEY, JSON.stringify(cfg)); }catch(e){ /* storage unavailable */ }
+}
+let emailConfig = loadEmailConfig();
+
+function htmlEscape(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmtDateLong(d){
+  return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+}
+
+/* ---------- Settings modal ---------- */
+const settingsOverlay = document.getElementById('settingsOverlay');
+function renderRecipientList(containerId, arr){
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  arr.forEach((val, idx)=>{
+    const row = document.createElement('div');
+    row.className = 'recipient-row';
+    row.innerHTML = `<input type="email" value="${htmlEscape(val)}" placeholder="name@pos.com.my"><button aria-label="Remove">&times;</button>`;
+    row.querySelector('input').addEventListener('input', e=>{ arr[idx] = e.target.value.trim(); });
+    row.querySelector('button').addEventListener('click', ()=>{ arr.splice(idx,1); renderRecipientList(containerId, arr); });
+    el.appendChild(row);
+  });
+}
+let editingMgmt = [], editingCc = [];
+async function openSettingsModal(){
+  // Pull the latest shared settings from the server first, so every admin
+  // sees the true current values (not a possibly-stale local copy) —
+  // serverUrl itself stays local since it's "which backend to talk to",
+  // not something the backend stores about itself.
+  if(emailConfig.serverUrl){
+    try{
+      const res = await fetch(emailConfig.serverUrl + '/api/config');
+      if(res.ok){
+        const serverCfg = await res.json();
+        emailConfig = Object.assign({}, emailConfig, serverCfg, { serverUrl: emailConfig.serverUrl });
+        saveEmailConfig(emailConfig);
+      }
+    }catch(e){ /* offline — fall back to showing our last-known local copy below */ }
+  }
+
+  editingMgmt = emailConfig.managementRecipients.slice();
+  editingCc = emailConfig.ccRecipients.slice();
+  renderRecipientList('mgmtRecipientList', editingMgmt);
+  renderRecipientList('ccRecipientList', editingCc);
+  document.getElementById('cfgDay').value = emailConfig.day;
+  document.getElementById('cfgTime').value = emailConfig.time;
+  document.getElementById('cfgThreshold').value = emailConfig.urgentThresholdDays;
+  document.getElementById('cfgSubject').value = emailConfig.subjectPrefix;
+  document.getElementById('cfgServerUrl').value = emailConfig.serverUrl;
+  document.getElementById('cfgAutoSend').checked = !!emailConfig.autoSendEnabled;
+  document.getElementById('cfgTestMode').checked = !!emailConfig.testMode;
+  document.getElementById('settingsError').textContent = '';
+  settingsOverlay.classList.add('open');
+}
+function closeSettingsModal(){ settingsOverlay.classList.remove('open'); }
+document.getElementById('emailSettingsBtn').addEventListener('click', openSettingsModal);
+document.getElementById('settingsClose').addEventListener('click', closeSettingsModal);
+document.getElementById('settingsCancelBtn').addEventListener('click', closeSettingsModal);
+document.getElementById('addMgmtRecipientBtn').addEventListener('click', ()=>{ editingMgmt.push(''); renderRecipientList('mgmtRecipientList', editingMgmt); });
+document.getElementById('addCcRecipientBtn').addEventListener('click', ()=>{ editingCc.push(''); renderRecipientList('ccRecipientList', editingCc); });
+document.getElementById('restoreDefaultRecipientsBtn').addEventListener('click', ()=>{
+  editingMgmt = DEFAULT_EMAIL_CONFIG.managementRecipients.slice();
+  renderRecipientList('mgmtRecipientList', editingMgmt);
+});
+document.getElementById('settingsSaveBtn').addEventListener('click', async ()=>{
+  const mgmt = editingMgmt.map(v=>v.trim()).filter(Boolean);
+  const cc = editingCc.map(v=>v.trim()).filter(Boolean);
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const bad = [...mgmt, ...cc].find(v=> !emailRe.test(v));
+  if(mgmt.length===0){ document.getElementById('settingsError').textContent = 'At least one Management recipient is required.'; return; }
+  if(bad){ document.getElementById('settingsError').textContent = `"${bad}" doesn't look like a valid email address.`; return; }
+  emailConfig = {
+    managementRecipients: mgmt,
+    ccRecipients: cc,
+    day: document.getElementById('cfgDay').value,
+    time: document.getElementById('cfgTime').value,
+    urgentThresholdDays: Math.max(1, parseInt(document.getElementById('cfgThreshold').value,10) || 30),
+    subjectPrefix: document.getElementById('cfgSubject').value.trim() || DEFAULT_EMAIL_CONFIG.subjectPrefix,
+    serverUrl: document.getElementById('cfgServerUrl').value.trim().replace(/\/$/,''),
+    autoSendEnabled: document.getElementById('cfgAutoSend').checked,
+    testMode: document.getElementById('cfgTestMode').checked
+  };
+  saveEmailConfig(emailConfig);
+  closeSettingsModal();
+  showToast('Email settings saved.');
+  // Best-effort push of the new config to the automation server so the
+  // Monday cron job (which runs independently of this browser) picks it up.
+  if(emailConfig.serverUrl){
+    try{
+      await fetch(emailConfig.serverUrl + '/api/config', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(emailConfig)
+      });
+    }catch(e){ showToast('Saved locally, but could not reach the automation server to update it.'); }
+  }
+  renderAutomationPanel();
+});
+
+/* ---------- KPI + urgent-list calculation for the email (mirrors execDefs) ---------- */
+function computeEmailKpis(){
+  return {
+    total: execDefs.find(e=>e.k==='total').calc(),
+    active: execDefs.find(e=>e.k==='active').calc(),
+    expired: execDefs.find(e=>e.k==='expired').calc(),
+    noexp: execDefs.find(e=>e.k==='noexp').calc(),
+    b30: execDefs.find(e=>e.k==='b30').calc(),
+    b60: execDefs.find(e=>e.k==='b60').calc(),
+    b90: execDefs.find(e=>e.k==='b90').calc()
+  };
+}
+function computeUrgentList(thresholdDays){
+  return data
+    .filter(d=> d.exp && d.days <= thresholdDays)
+    .sort((a,b)=> a.days - b.days);
+}
+
+/* ---------- Build the Outlook-safe HTML email ---------- */
+function buildWeeklyEmailHTML(opts){
+  opts = opts || {};
+  const threshold = emailConfig.urgentThresholdDays;
+  const kpi = computeEmailKpis();
+  const urgent = computeUrgentList(threshold);
+  const expiredCount = urgent.filter(d=>d.days<0).length;
+  const nearest = urgent[0];
+  const reportDate = fmtDateLong(TODAY);
+  const NAVY='#12283F', RED='#D64550', REDBG='#FBE7E8', AMBER='#E29B3E', AMBERBG='#FCF0DC', SLATE='#8A93A3', LINE='#E3DED2', CREAM='#F5F2EA';
+
+  const kpiRows = [
+    ['Total Tenancies', kpi.total],
+    ['Active', kpi.active],
+    ['Expired', kpi.expired],
+    ['No Expiry Date', kpi.noexp],
+    [`Expiring ≤ ${threshold} Days`, kpi.b30],
+    ['Expiring 31–60 Days', kpi.b60],
+    ['Expiring 61–90 Days', kpi.b90]
+  ].map(([label,val])=>`<tr><td style="padding:8px 12px;border:1px solid ${LINE};font-family:Arial,sans-serif;font-size:13px;color:#1B2430;">${label}</td><td style="padding:8px 12px;border:1px solid ${LINE};font-family:Arial,sans-serif;font-size:13px;font-weight:bold;color:${NAVY};text-align:right;">${val}</td></tr>`).join('');
+
+  const urgentRows = urgent.map(d=>{
+    const isExpired = d.days < 0;
+    const isImminent = !isExpired && d.days <= 7;
+    const bg = isExpired ? REDBG : (isImminent ? AMBERBG : '#FFFFFF');
+    const daysLabel = isExpired ? `Expired ${Math.abs(d.days)}d ago` : `${d.days}d remaining`;
+    const daysColor = isExpired ? RED : (isImminent ? '#B5641A' : '#1B2430');
+    return `<tr style="background:${bg};">
+      <td style="padding:7px 10px;border:1px solid ${LINE};font-family:Arial,sans-serif;font-size:12px;">${htmlEscape(d.cc)}</td>
+      <td style="padding:7px 10px;border:1px solid ${LINE};font-family:Arial,sans-serif;font-size:12px;">${htmlEscape(d.name)}</td>
+      <td style="padding:7px 10px;border:1px solid ${LINE};font-family:Arial,sans-serif;font-size:12px;">${htmlEscape(d.state)}</td>
+      <td style="padding:7px 10px;border:1px solid ${LINE};font-family:Arial,sans-serif;font-size:12px;">${htmlEscape(d.category)}</td>
+      <td style="padding:7px 10px;border:1px solid ${LINE};font-family:Arial,sans-serif;font-size:12px;">${fmtDate(d.exp)}</td>
+      <td style="padding:7px 10px;border:1px solid ${LINE};font-family:Arial,sans-serif;font-size:12px;font-weight:bold;color:${daysColor};">${daysLabel}</td>
+      <td style="padding:7px 10px;border:1px solid ${LINE};font-family:Arial,sans-serif;font-size:12px;">${TIER_LABEL[d.tier]}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7" style="padding:14px;text-align:center;font-family:Arial,sans-serif;font-size:12.5px;color:#5B6472;border:1px solid ${LINE};">No tenancies are expiring within ${threshold} days. No urgent action required this week.</td></tr>`;
+
+  const testBanner = opts.test ? `<tr><td style="background:#12283F;color:#fff;font-family:Arial,sans-serif;font-size:12.5px;font-weight:bold;padding:10px 20px;text-align:center;letter-spacing:.04em;">⚠ THIS IS A TEST EMAIL — NOT THE OFFICIAL WEEKLY MANAGEMENT REPORT</td></tr>` : '';
+  const subject = (opts.test ? '[TEST] ' : '') + `${emailConfig.subjectPrefix} – ${reportDate}`;
+
+  const managementAttention = `
+    <ul style="font-family:Arial,sans-serif;font-size:13px;color:#1B2430;line-height:1.7;margin:0;padding-left:18px;">
+      <li><b>${urgent.length}</b> tenanc${urgent.length===1?'y requires':'ies require'} urgent attention (expiring within ${threshold} days)${expiredCount?`, of which <b style="color:${RED};">${expiredCount} ${expiredCount===1?'has':'have'} already expired</b>`:''}.</li>
+      ${nearest ? `<li>Nearest expiry: <b>${htmlEscape(nearest.name)}</b> (${htmlEscape(nearest.cc)}) — ${nearest.days<0? `expired ${Math.abs(nearest.days)} day(s) ago` : `${nearest.days} day(s) remaining`}.</li>` : `<li>No upcoming expiries within the urgent window — renewal position is currently stable.</li>`}
+      <li>${kpi.noexp} tenanc${kpi.noexp===1?'y has':'ies have'} no expiry date on record and should be reviewed for data completeness.</li>
+    </ul>`;
+
+  return {
+    subject,
+    html: `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:${CREAM};">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREAM};padding:24px 0;">
+<tr><td align="center">
+<table role="presentation" width="700" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border:1px solid ${LINE};border-radius:8px;overflow:hidden;">
+${testBanner}
+<tr><td style="background:${NAVY};padding:20px 28px;">
+  <div style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#B8C4D4;">POS Malaysia · Property &amp; Tenancy Management</div>
+  <div style="font-family:Arial,sans-serif;font-size:20px;font-weight:bold;color:#fff;margin-top:4px;">Weekly Tenancy Renewal Status</div>
+  <div style="font-family:Arial,sans-serif;font-size:12.5px;color:#B8C4D4;margin-top:4px;">Reporting Date: ${reportDate}</div>
+</td></tr>
+<tr><td style="padding:22px 28px 6px;">
+  <p style="font-family:Arial,sans-serif;font-size:13.5px;color:#1B2430;line-height:1.6;margin:0 0 16px;">Dear Management,<br>Please find below the weekly tenancy renewal status report as of ${reportDate}.</p>
+  <div style="font-family:Arial,sans-serif;font-size:14px;font-weight:bold;color:${NAVY};margin-bottom:8px;">1. Renewal Status Summary</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:20px;">${kpiRows}</table>
+  <div style="font-family:Arial,sans-serif;font-size:14px;font-weight:bold;color:${NAVY};margin-bottom:8px;">2. Urgent Attention — Expiring Within ${threshold} Days</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:20px;">
+    <tr style="background:${NAVY};">
+      <th style="padding:7px 10px;border:1px solid ${NAVY};font-family:Arial,sans-serif;font-size:11px;color:#fff;text-align:left;">Cost Centre</th>
+      <th style="padding:7px 10px;border:1px solid ${NAVY};font-family:Arial,sans-serif;font-size:11px;color:#fff;text-align:left;">Outlet / Branch</th>
+      <th style="padding:7px 10px;border:1px solid ${NAVY};font-family:Arial,sans-serif;font-size:11px;color:#fff;text-align:left;">State</th>
+      <th style="padding:7px 10px;border:1px solid ${NAVY};font-family:Arial,sans-serif;font-size:11px;color:#fff;text-align:left;">Category</th>
+      <th style="padding:7px 10px;border:1px solid ${NAVY};font-family:Arial,sans-serif;font-size:11px;color:#fff;text-align:left;">Expiry Date</th>
+      <th style="padding:7px 10px;border:1px solid ${NAVY};font-family:Arial,sans-serif;font-size:11px;color:#fff;text-align:left;">Days Remaining</th>
+      <th style="padding:7px 10px;border:1px solid ${NAVY};font-family:Arial,sans-serif;font-size:11px;color:#fff;text-align:left;">Status</th>
+    </tr>
+    ${urgentRows}
+  </table>
+  <div style="font-family:Arial,sans-serif;font-size:14px;font-weight:bold;color:${NAVY};margin-bottom:8px;">3. Management Attention Required</div>
+  ${managementAttention}
+</td></tr>
+<tr><td style="padding:16px 28px;background:${CREAM};border-top:1px solid ${LINE};">
+  <div style="font-family:Arial,sans-serif;font-size:11px;color:#5B6472;">Generated automatically from the Tenancy Expiry Watch dashboard. Figures reflect data as at ${reportDate} and exclude blank/invalid expiry dates from expiry calculations.</div>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`
+  };
+}
+
+/* ---------- Preview modal ---------- */
+const previewOverlay = document.getElementById('previewOverlay');
+let lastPreviewPayload = null;
+function showEmailPreview(opts){
+  const built = buildWeeklyEmailHTML(opts);
+  lastPreviewPayload = { opts, built };
+  document.getElementById('previewModalTitle').textContent = (opts.test ? 'TEST Email — Preview' : 'Weekly Management Email — Preview');
+  const frame = document.getElementById('emailPreviewFrame');
+  frame.srcdoc = built.html;
+  const allRecipients = emailConfig.managementRecipients.concat(emailConfig.ccRecipients.map(c=>c+' (cc)'));
+  document.getElementById('previewFooterNote').textContent = `To: ${emailConfig.managementRecipients.join(', ')}${emailConfig.ccRecipients.length? ' · Cc: '+emailConfig.ccRecipients.join(', '):''}`;
+  previewOverlay.classList.add('open');
+}
+document.getElementById('previewClose').addEventListener('click', ()=> previewOverlay.classList.remove('open'));
+document.getElementById('previewCloseBtn2').addEventListener('click', ()=> previewOverlay.classList.remove('open'));
+document.getElementById('copyEmailHtmlBtn').addEventListener('click', async ()=>{
+  try{ await navigator.clipboard.writeText(lastPreviewPayload.built.html); showToast('Email HTML copied to clipboard.'); }
+  catch(e){ showToast('Could not copy — your browser may be blocking clipboard access.'); }
+});
+document.getElementById('openInOutlookBtn').addEventListener('click', ()=>{
+  const kpi = computeEmailKpis();
+  const urgent = computeUrgentList(emailConfig.urgentThresholdDays);
+  const lines = [
+    `Weekly Tenancy Renewal Status – ${fmtDateLong(TODAY)}`,'',
+    `Total: ${kpi.total} | Active: ${kpi.active} | Expired: ${kpi.expired} | No expiry: ${kpi.noexp}`,
+    `Expiring <=30d: ${kpi.b30} | 31-60d: ${kpi.b60} | 61-90d: ${kpi.b90}`,'',
+    `Urgent (<= ${emailConfig.urgentThresholdDays} days) — ${urgent.length} tenancy(ies):`
+  ];
+  urgent.slice(0,25).forEach(d=> lines.push(`- ${d.name} (${d.cc}, ${d.state}): ${d.days<0?'EXPIRED '+Math.abs(d.days)+'d ago':d.days+'d remaining'}`));
+  const body = encodeURIComponent(lines.join('\n'));
+  const subject = encodeURIComponent(lastPreviewPayload.built.subject);
+  const to = encodeURIComponent(emailConfig.managementRecipients.join(','));
+  const cc = emailConfig.ccRecipients.length ? '&cc=' + encodeURIComponent(emailConfig.ccRecipients.join(',')) : '';
+  window.location.href = `mailto:${to}?subject=${subject}${cc}&body=${body}`;
+});
+
+/* ---------- Server calls: shared data (fetch + push-and-adopt), test-send, send-now, status ---------- */
+async function loadServerData(){
+  if(!emailConfig.serverUrl) return false;
+  try{
+    const res = await fetch(emailConfig.serverUrl + '/api/data');
+    if(!res.ok) return false;
+    const json = await res.json();
+    if(Array.isArray(json.tenancies) && json.tenancies.length){
+      SERVER_BASE = json.tenancies;
+      return true;
+    }
+  }catch(e){ /* stay on whatever base we already have */ }
+  return false;
+}
+async function syncDataToServer(){
+  // Pushes the current merged view to the server as the new shared base,
+  // then "adopts" it: local add/edit/delete overrides are cleared because
+  // they are now folded into the shared copy everyone else will fetch.
+  if(!emailConfig.serverUrl) return;
+  recompute(); // make sure `data` reflects the very latest overrides before snapshotting — fixes a race where a just-added/edited row could get wiped out
+  const snapshot = data.map(d=>({cc:d.cc,name:d.name,state:d.state,category:d.category,comm:d.comm,exp:d.exp,rent:d.rent}));
+  try{
+    await fetch(emailConfig.serverUrl + '/api/data', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ tenancies: snapshot, syncedAt: new Date().toISOString() })
+    });
+    SERVER_BASE = snapshot;
+    overrides = { added: [], edited: {}, deleted: [], lastEdit: new Date().toISOString() };
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides)); }catch(e){ /* storage unavailable */ }
+    recompute();
+    renderExecStrip(); renderKpis(); renderCharts(); renderChips(); updateFunnelStates(); render();
+    renderLastEditNote();
+  }catch(e){
+    showToast('Could not sync your change to the shared server — it is saved locally in this browser only for now.');
+  }
+}
+async function callServer(path, payload){
+  if(!emailConfig.serverUrl) return {ok:false, reason:'no-server'};
+  try{
+    const res = await fetch(emailConfig.serverUrl + path, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload||{})
+    });
+    const json = await res.json().catch(()=>({}));
+    return {ok: res.ok, status: res.status, body: json};
+  }catch(e){ return {ok:false, reason:'unreachable'}; }
+}
+
+document.getElementById('generateEmailBtn').addEventListener('click', ()=>{
+  showEmailPreview({test:false});
+});
+document.getElementById('previewSendNowBtn').addEventListener('click', async ()=>{
+  if(!emailConfig.serverUrl){ showToast('No automation server configured — add one in Email Settings to enable sending.'); return; }
+  showToast('Sending…');
+  const result = await callServer('/api/report/send-now', { config: emailConfig });
+  if(result.ok){ showToast('Weekly report sent to Management.'); previewOverlay.classList.remove('open'); renderAutomationPanel(); }
+  else if(result.reason==='unreachable'){ showToast('Could not reach the automation server. Check the Server URL in Email Settings.'); }
+  else{ showToast('Send failed: ' + (result.body && result.body.error ? result.body.error : 'unknown error')); }
+});
+document.getElementById('sendTestEmailBtn').addEventListener('click', async ()=>{
+  showEmailPreview({test:true});
+  if(!emailConfig.serverUrl){ showToast('Preview only — no automation server configured yet (see Email Settings).'); return; }
+  showToast('Sending test email…');
+  const result = await callServer('/api/report/test-send', { config: emailConfig });
+  if(result.ok){ showToast('Test email sent.'); }
+  else if(result.reason==='unreachable'){ showToast('Could not reach the automation server for the test send.'); }
+  else{ showToast('Test send failed: ' + (result.body && result.body.error ? result.body.error : 'unknown error')); }
+});
+
+/* ---------- Automation status panel ---------- */
+function automationCard(label, value, opts){
+  opts = opts || {};
+  return `<div class="automation-card${opts.warn?' warn':''}"><div class="auto-lbl">${label}</div><div class="auto-val${opts.err?' err':''}">${value}</div></div>`;
+}
+async function renderAutomationPanel(){
+  const pill = document.getElementById('automationStatusPill');
+  const pillText = document.getElementById('automationStatusText');
+  const grid = document.getElementById('automationGrid');
+  const note = document.getElementById('automationNote');
+  const urgentNow = computeUrgentList(emailConfig.urgentThresholdDays).length;
+
+  pill.className = 'automation-status-pill ' + (emailConfig.autoSendEnabled ? 'on' : 'off');
+  pillText.textContent = emailConfig.autoSendEnabled ? 'Automatic Monday email: ON' : 'Automatic Monday email: OFF';
+
+  let serverStatus = null, serverError = null;
+  if(emailConfig.serverUrl){
+    try{
+      const res = await fetch(emailConfig.serverUrl + '/api/status');
+      if(res.ok) serverStatus = await res.json();
+      else serverError = 'Server responded with an error.';
+    }catch(e){ serverError = 'Automation server unreachable.'; }
+  }
+
+  const cards = [];
+  cards.push(automationCard('Report Day / Time', `${emailConfig.day} · ${emailConfig.time}`));
+  cards.push(automationCard('Urgent Renewals Now', urgentNow, urgentNow>0?{warn:true}:{}));
+  if(serverStatus){
+    cards.push(automationCard('Next Scheduled Report', serverStatus.nextScheduled ? new Date(serverStatus.nextScheduled).toLocaleString('en-GB') : '—'));
+    cards.push(automationCard('Last Report Sent', serverStatus.lastSentAt ? new Date(serverStatus.lastSentAt).toLocaleString('en-GB') : 'Not sent yet'));
+    cards.push(automationCard('Last Report Status', serverStatus.lastStatus || '—', serverStatus.lastStatus==='FAILED'?{err:true,warn:true}:{}));
+    if(serverStatus.lastError){ cards.push(automationCard('Last Error', serverStatus.lastError, {err:true, warn:true})); }
+  } else {
+    cards.push(automationCard('Next Scheduled Report', emailConfig.serverUrl ? '—' : 'Not connected'));
+    cards.push(automationCard('Last Report Sent', emailConfig.serverUrl ? '—' : 'Not connected'));
+    cards.push(automationCard('Last Report Status', emailConfig.serverUrl ? (serverError||'Unavailable') : 'No server configured', {warn:true}));
+  }
+  grid.innerHTML = cards.join('');
+
+  if(!emailConfig.serverUrl){
+    note.innerHTML = `<b>No automation server configured.</b> "Generate Weekly Management Email" and "Send Test Email" will still build and preview the report from this dashboard's live data, but sending on a real schedule (every Monday, even when nobody opens this file) requires the small automation server described in the setup guide. Add its URL under Email Settings → Automation Server once it is deployed.`;
+  } else if(serverError){
+    note.innerHTML = `<b>Automation server configured but unreachable right now</b> (${htmlEscape(serverError)}). Figures above other than "Urgent Renewals Now" may be out of date. Check that the server is running and the URL in Email Settings is correct.`;
+  } else if(emailConfig.testMode){
+    note.innerHTML = `<b>Test mode is ON.</b> The automatic Monday run will not send the live report to Management until Test Mode is turned off in Email Settings.`;
+  } else {
+    note.innerHTML = `Figures are recalculated from the data currently loaded in this dashboard, and this dashboard periodically syncs that data to the automation server so the Monday send stays current.`;
+  }
+}
+
+/* Extend the existing saveOverrides() so any add/edit/delete also pushes
+   the latest data to the automation server — without altering its
+   original logic. */
+const _origSaveOverrides = saveOverrides;
+saveOverrides = function(){
+  _origSaveOverrides();
+  syncDataToServer();
+  renderAutomationPanel();
+};
+
+/* ================= INITIAL RENDER ================= */
+(async function initialLoad(){
+  const gotSharedData = await loadServerData();
+  if(gotSharedData) recompute();
+
+  renderLastEditNote();
+  renderExecStrip();
+  renderKpis();
+  renderCharts();
+  renderChips();
+  updateFunnelStates();
+  render();
+  applyAdminVisibility();
+  renderAutomationPanel();
+
+  // Every 30s, check the shared server for changes made by other people
+  // editing this same dashboard elsewhere, and refresh the view if so.
+  setInterval(async ()=>{
+    const before = SERVER_BASE ? JSON.stringify(SERVER_BASE) : null;
+    const changed = await loadServerData();
+    if(changed && JSON.stringify(SERVER_BASE) !== before){
+      recompute();
+      renderExecStrip(); renderKpis(); renderCharts(); renderChips(); updateFunnelStates(); render();
+    }
+  }, 30*1000);
+
+  setInterval(renderAutomationPanel, 5*60*1000);
+})();
+</script>
+</body>
+</html>
