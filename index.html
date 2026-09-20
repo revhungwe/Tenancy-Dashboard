@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>POS Malaysia — Channel Network Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5F2EA; --panel:#FFFFFF; --ink:#1B2430; --ink-soft:#5B6472; --line:#E3DED2;
+    --navy:#12283F; --navy-2:#1D3A57;
+    --outlet-navy:#1E3A5F; --outlet-green:#2F6B4F; --outlet-gold:#C9A24B;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-height:100vh;}
+  .wrap{max-width:1000px;margin:0 auto;padding:64px 32px 40px;}
+  .eyebrow{font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;margin-bottom:10px;}
+  h1{font-family:'Fraunces',serif;font-weight:600;font-size:34px;margin:0 0 8px;color:var(--navy);}
+  .lede{color:var(--ink-soft);font-size:15px;max-width:640px;margin-bottom:44px;line-height:1.6;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px 26px;text-decoration:none;color:inherit;display:flex;flex-direction:column;gap:14px;transition:transform .15s ease, box-shadow .15s ease;box-shadow:0 1px 2px rgba(0,0,0,.03);}
+  .card:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(18,40,63,.10);}
+  .card .icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:700;font-size:18px;color:#fff;}
+  .card.tenancy .icon{background:var(--navy);}
+  .card.outlets .icon{background:var(--outlet-navy);}
+  .card h2{font-family:'Fraunces',serif;font-size:20px;font-weight:600;margin:0;color:var(--ink);}
+  .card p{font-size:13.5px;color:var(--ink-soft);line-height:1.55;margin:0;flex:1;}
+  .card .cta{font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px;}
+  .card.tenancy .cta{color:var(--navy);}
+  .card.outlets .cta{color:var(--outlet-navy);}
+  .card .cta svg{width:14px;height:14px;transition:transform .15s ease;}
+  .card:hover .cta svg{transform:translateX(3px);}
+  footer{max-width:1000px;margin:60px auto 0;padding:0 32px 40px;color:var(--ink-soft);font-size:12px;}
+  @media (max-width: 600px){
+    .wrap{padding:40px 20px 20px;}
+    h1{font-size:26px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">POS Malaysia · Channel Network</div>
+  <h1>Channel Network Portal</h1>
+  <p class="lede">Choose which register you'd like to open. Each has its own viewer and admin access, kept fully independent of the other.</p>
+
+  <div class="cards">
+    <a class="card tenancy" href="./tenancy.html">
+      <div class="icon">PM</div>
+      <h2>Tenancy Expiry Watch</h2>
+      <p>Lease and tenancy renewal tracking across Post Offices, Pos Laju Kiosks, and Pos Laju Centres — expiry status, KPIs, and the weekly Management email.</p>
+      <span class="cta">Open Tenancy Expiry Watch
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
+    <a class="card outlets" href="./outlets.html">
+      <div class="icon">ON</div>
+      <h2>Outlet Network Dashboard</h2>
+      <p>The full active-outlet register and closure history across all channel touchpoints, with geocoding, staffing, and change history.</p>
+      <span class="cta">Open Outlet Network Dashboard
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
+  </div>
+</div>
+<footer>Each dashboard has its own separate Admin login, its own data, and its own Activity/Change Log.</footer>
+</body>
+</html>
