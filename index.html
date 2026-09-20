@@ -19,6 +19,14 @@
   h1{font-family:'Fraunces',serif;font-weight:600;font-size:34px;margin:0 0 8px;color:var(--navy);}
   .lede{color:var(--ink-soft);font-size:15px;max-width:640px;margin-bottom:44px;line-height:1.6;}
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;}
+  #cardsWrap{display:none;}
+  #gateWrap{max-width:380px;}
+  #gateWrap .gate-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:32px 30px;box-shadow:0 1px 2px rgba(0,0,0,.03);}
+  #gateWrap label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:8px;}
+  #gateWrap input{width:100%;font-family:'Inter',sans-serif;font-size:14px;padding:11px 13px;border-radius:9px;border:1px solid var(--line);margin-bottom:14px;}
+  #gateWrap button{width:100%;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;padding:11px 13px;border-radius:9px;border:none;background:var(--navy);color:#fff;cursor:pointer;}
+  #gateWrap button:hover{background:var(--navy-2);}
+  #gateError{color:#A5262F;font-size:12.5px;margin-top:10px;min-height:16px;}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px 26px;text-decoration:none;color:inherit;display:flex;flex-direction:column;gap:14px;transition:transform .15s ease, box-shadow .15s ease;box-shadow:0 1px 2px rgba(0,0,0,.03);}
   .card:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(18,40,63,.10);}
   .card .icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:700;font-size:18px;color:#fff;}
@@ -42,27 +50,77 @@
 <div class="wrap">
   <div class="eyebrow">POS Malaysia · Channel Network</div>
   <h1>Channel Network Portal</h1>
-  <p class="lede">Choose which register you'd like to open. Each has its own viewer and admin access, kept fully independent of the other.</p>
+  <p class="lede" id="ledeText">Enter the access password to continue.</p>
 
-  <div class="cards">
-    <a class="card tenancy" href="./tenancy.html">
-      <div class="icon">PM</div>
-      <h2>Tenancy Expiry Watch</h2>
-      <p>Lease and tenancy renewal tracking across Post Offices, Pos Laju Kiosks, and Pos Laju Centres — expiry status, KPIs, and the weekly Management email.</p>
-      <span class="cta">Open Tenancy Expiry Watch
-        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </a>
-    <a class="card outlets" href="./outlets.html">
-      <div class="icon">ON</div>
-      <h2>Outlet Network Dashboard</h2>
-      <p>The full active-outlet register and closure history across all channel touchpoints, with geocoding, staffing, and change history.</p>
-      <span class="cta">Open Outlet Network Dashboard
-        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </a>
+  <div id="gateWrap">
+    <div class="gate-box">
+      <label for="gatePassword">Access Password</label>
+      <input type="password" id="gatePassword" placeholder="Enter password" autocomplete="off" />
+      <button id="gateSubmitBtn" type="button">Enter</button>
+      <div id="gateError"></div>
+    </div>
+  </div>
+
+  <div id="cardsWrap">
+    <div class="cards">
+      <a class="card tenancy" href="./tenancy.html">
+        <div class="icon">PM</div>
+        <h2>Tenancy Expiry Watch</h2>
+        <p>Lease and tenancy renewal tracking across Post Offices, Pos Laju Kiosks, and Pos Laju Centres — expiry status, KPIs, and the weekly Management email.</p>
+        <span class="cta">Open Tenancy Expiry Watch
+          <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </a>
+      <a class="card outlets" href="./outlets.html">
+        <div class="icon">ON</div>
+        <h2>Outlet Network Dashboard</h2>
+        <p>The full active-outlet register and closure history across all channel touchpoints, with geocoding, staffing, and change history.</p>
+        <span class="cta">Open Outlet Network Dashboard
+          <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </a>
+    </div>
   </div>
 </div>
 <footer>Each dashboard has its own separate Admin login, its own data, and its own Activity/Change Log.</footer>
+<script>
+const PORTAL_SERVER_URL = 'https://tenancy-email-automation.onrender.com';
+const PORTAL_UNLOCK_KEY = 'channelPortal_unlocked_v1';
+
+function showCards(){
+  document.getElementById('gateWrap').style.display = 'none';
+  document.getElementById('cardsWrap').style.display = 'block';
+  document.getElementById('ledeText').textContent = 'Choose which register you\'d like to open. Each has its own viewer and admin access, kept fully independent of the other.';
+}
+
+if(sessionStorage.getItem(PORTAL_UNLOCK_KEY) === 'true'){
+  showCards();
+}
+
+document.getElementById('gatePassword').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') document.getElementById('gateSubmitBtn').click();
+});
+document.getElementById('gateSubmitBtn').addEventListener('click', async ()=>{
+  const pwd = document.getElementById('gatePassword').value;
+  const errEl = document.getElementById('gateError');
+  if(!pwd){ errEl.textContent = 'Enter the access password.'; return; }
+  errEl.textContent = 'Checking…';
+  try{
+    const res = await fetch(PORTAL_SERVER_URL + '/api/portal/verify', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: pwd })
+    });
+    const json = await res.json().catch(()=>({}));
+    if(res.ok && json.ok){
+      try{ sessionStorage.setItem(PORTAL_UNLOCK_KEY, 'true'); }catch(e){}
+      errEl.textContent = '';
+      showCards();
+    } else {
+      errEl.textContent = json.error || 'Incorrect password.';
+    }
+  }catch(e){
+    errEl.textContent = 'Could not reach the server to check the password. Please try again.';
+  }
+});
+</script>
 </body>
 </html>
