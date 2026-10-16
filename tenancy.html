@@ -124,6 +124,7 @@ footer{margin-top:22px;font-size:11.5px;color:var(--ink-soft);font-family:'IBM P
 .switch{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0}.switch input{opacity:0;width:0;height:0}.slider{position:absolute;cursor:pointer;inset:0;background:#CBD2DC;border-radius:22px;transition:.15s}.slider:before{position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.15s}.switch input:checked+.slider{background:var(--green)}.switch input:checked+.slider:before{transform:translateX(18px)}
 .preview-modal .modal{max-width:820px}.preview-frame-wrap{border:1px solid var(--line);border-radius:8px;overflow:hidden}#emailPreviewFrame{width:100%;height:60vh;border:none;background:#fff;display:block}.preview-toolbar{display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px}
 @media print{body{background:#fff}.toolbar,.controls,.active-filter-chips,.modal-overlay,.filter-btn,.btn,.icon-btn,.row-actions,.admin-only-block,.top-scroll{display:none!important}.wrap{max-width:100%;padding:10px 14px}.pu-select{appearance:none;border:none;background:none}}
+.imp-sum{font-size:13px;line-height:1.6;margin-bottom:12px}.imp-fields{display:flex;flex-wrap:wrap;gap:6px 18px;margin-bottom:8px;font-size:13px}.imp-fields label{display:flex;gap:6px;align-items:center;cursor:pointer}.imp-fields span{color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;font-size:11.5px}.imp-note{font-size:12px;color:var(--ink-soft);margin-bottom:10px;line-height:1.5}.imp-table{width:100%;border-collapse:collapse;font-size:12.5px}.imp-table th{position:sticky;top:0;background:#FAFAF7;text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;color:var(--ink-soft)}.imp-table td{padding:7px 10px;border-top:1px solid var(--line);vertical-align:top}
 </style>
 </head>
 <body>
@@ -146,6 +147,7 @@ footer{margin-top:22px;font-size:11.5px;color:var(--ink-soft);font-family:'IBM P
   <button class="btn admin-only" id="generateEmailBtn" style="display:none">Generate Weekly Management Email</button>
   <button class="btn admin-only" id="sendTestEmailBtn" style="display:none">Send Test Email</button>
   <button class="btn admin-only" id="syncNowBtn" style="display:none" title="Push this register (dates + Property Update statuses) to the shared server">Publish to Server</button>
+  <button class="btn admin-only" id="importBtn" style="display:none" title="Read a Channel contract list (.xlsx) and update the register from it">Import Channel Excel</button><input type="file" id="importFile" accept=".xlsx" style="display:none">
   <span class="spacer"></span>
   <span class="last-edit-note" id="lastEditNote"></span>
   <button class="btn btn-ghost admin-only" id="resetBtn" style="display:none">Reset local edits</button>
@@ -290,6 +292,23 @@ Edits are saved in this browser (<span id="storageNote">no local edits yet</span
   <div class="modal-head"><h3>Activity Log — Who Changed What</h3><button class="modal-close" id="activityLogClose">&times;</button></div>
   <div class="modal-body"><div id="activityLogList" style="max-height:60vh;overflow:auto"></div></div>
   <div class="modal-foot"><button class="btn" id="activityLogCloseBtn2">Close</button></div>
+</div></div>
+<div class="modal-overlay" id="importOverlay"><div class="modal" style="max-width:880px">
+  <div class="modal-head"><h3>Import Channel Excel</h3><button class="modal-close" id="importClose">&times;</button></div>
+  <div class="modal-body">
+    <div id="impSummary" class="imp-sum"></div>
+    <div class="imp-fields">
+      <label><input type="checkbox" class="imp-f" id="imp_exp" checked> Expiry date <span id="impc_exp"></span></label>
+      <label><input type="checkbox" class="imp-f" id="imp_terms" checked> Termination notice &amp; penalty <span id="impc_terms"></span></label>
+      <label><input type="checkbox" class="imp-f" id="imp_pic" checked> PIC <span id="impc_pic"></span></label>
+      <label><input type="checkbox" class="imp-f" id="imp_rent" checked> Rent / month <span id="impc_rent"></span></label>
+      <label><input type="checkbox" class="imp-f" id="imp_comm"> Commencement date <span id="impc_comm"></span></label>
+    </div>
+    <div class="imp-note">Commencement is off by default: the Channel list often has day and month swapped on commencement dates. Property Update (Active / Closed / Relocation) is never changed by an import. Outlets that are in the file but not in this dashboard are not added.</div>
+    <div style="max-height:36vh;overflow:auto;border:1px solid var(--line);border-radius:8px"><table class="imp-table"><thead><tr><th>Outlet</th><th>Field</th><th>Current</th><th>New (from file)</th></tr></thead><tbody id="impRows"></tbody></table></div>
+    <details style="margin-top:10px;font-size:12.5px;color:var(--ink-soft)"><summary style="cursor:pointer">Outlets not matched (kept unchanged / not added)</summary><div id="impLists" style="margin-top:6px;max-height:20vh;overflow:auto;line-height:1.6"></div></details>
+  </div>
+  <div class="modal-foot"><button class="btn" id="importCancel">Cancel</button><span class="spacer"></span><button class="btn btn-primary" id="impApply">Apply</button></div>
 </div></div>
 <div class="toast" id="toast"></div>
 
@@ -773,6 +792,101 @@ let _lock=false;
 $('topScroll').addEventListener('scroll',()=>{ if(_lock){_lock=false;return;} const sh=$('tableShell'); if(sh.scrollLeft!==$('topScroll').scrollLeft){ _lock=true; sh.scrollLeft=$('topScroll').scrollLeft; } });
 $('tableShell').addEventListener('scroll',()=>{ if(_lock){_lock=false;return;} const s=$('topScroll'); if(s.scrollLeft!==$('tableShell').scrollLeft){ _lock=true; s.scrollLeft=$('tableShell').scrollLeft; } });
 window.addEventListener('resize',syncTopScroll); window.addEventListener('load',syncTopScroll);
+/* ================= IMPORT CHANNEL EXCEL (reads the .xlsx in the browser, previews, then applies) ================= */
+async function inflateRaw(u8){ const ds=new DecompressionStream('deflate-raw'), w=ds.writable.getWriter(); w.write(u8); w.close(); return new Uint8Array(await new Response(ds.readable).arrayBuffer()); }
+async function unzipXlsx(buf){
+  const u=new Uint8Array(buf), dv=new DataView(buf); let e=u.length-22; while(e>=0&&dv.getUint32(e,true)!==0x06054b50) e--; if(e<0) throw new Error('This is not a valid .xlsx file.');
+  const n=dv.getUint16(e+10,true); let p=dv.getUint32(e+16,true); const files={};
+  for(let i=0;i<n;i++){ const nl=dv.getUint16(p+28,true), el=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true); files[new TextDecoder().decode(u.subarray(p+46,p+46+nl))]={method:dv.getUint16(p+10,true),csize:dv.getUint32(p+20,true),lo:dv.getUint32(p+42,true)}; p+=46+nl+el+cl; }
+  return { get: async name=>{ const f=files[name]; if(!f) return null; const nl=dv.getUint16(f.lo+26,true), el=dv.getUint16(f.lo+28,true), s=f.lo+30+nl+el, d=u.subarray(s,s+f.csize); return new TextDecoder().decode(f.method===0?d:await inflateRaw(d)); } };
+}
+const xmlDec=s=>s.replace(/&#x([0-9a-f]+);/gi,(m,h)=>String.fromCharCode(parseInt(h,16))).replace(/&#(\d+);/g,(m,d)=>String.fromCharCode(+d)).replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');
+const colIdx=l=>l.split('').reduce((n,c)=>n*26+c.charCodeAt(0)-64,0)-1;
+const serialISO=n=>new Date(Date.UTC(1899,11,30)+Math.floor(n)*86400000).toISOString().slice(0,10);
+const normWs=s=>String(s==null?'':s).replace(/\s+/g,' ').trim();
+function toISO(v){ if(v==null) return null; const s=String(v).trim(); if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s; const m=s.match(/^(\d{1,2})\/(\d{1,2})\/?(\d{4})$/); if(!m) return null; const d=+m[1],mo=+m[2]; if(mo<1||mo>12||d<1||d>31) return null; return `${m[3]}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+function toRent(v){ if(typeof v==='number') return v; const s=String(v==null?'':v).replace(/[^\d.]/g,''); return s&&!isNaN(parseFloat(s))?parseFloat(s):null; }
+async function readChannelXlsx(buf){
+  const z=await unzipXlsx(buf), wbx=await z.get('xl/workbook.xml'); if(!wbx) throw new Error('This does not look like an Excel (.xlsx) file.');
+  const rels=(await z.get('xl/_rels/workbook.xml.rels'))||'', relMap={};
+  for(const m of rels.matchAll(/<Relationship\b[^>]*>/g)){ const id=(m[0].match(/\bId="([^"]*)"/)||[])[1], tg=(m[0].match(/\bTarget="([^"]*)"/)||[])[1]; if(id&&tg) relMap[id]=tg; }
+  const sheets=[...wbx.matchAll(/<sheet\b[^>]*>/g)].map(m=>({name:xmlDec((m[0].match(/\bname="([^"]*)"/)||[])[1]||''),rid:(m[0].match(/\br:id="([^"]*)"/)||[])[1]}));
+  const pick=sheets.find(s=>/contract/i.test(s.name))||sheets[0]; let tg=(relMap[pick.rid]||'').replace(/^\//,''); const xml=await z.get(tg.startsWith('xl/')?tg:'xl/'+tg); if(!xml) throw new Error('Could not open the worksheet.');
+  const ss=[], sst=(await z.get('xl/sharedStrings.xml'))||'';
+  for(const m of sst.matchAll(/<si>([\s\S]*?)<\/si>/g)) ss.push(xmlDec([...m[1].replace(/<rPh[\s\S]*?<\/rPh>/g,'').matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(x=>x[1]).join('')));
+  const sty=(await z.get('xl/styles.xml'))||'', custom={}; for(const m of sty.matchAll(/<numFmt\b[^>]*numFmtId="(\d+)"[^>]*formatCode="([^"]*)"/g)) custom[m[1]]=xmlDec(m[2]);
+  const dateXf=[]; for(const m of ((sty.match(/<cellXfs[^>]*>([\s\S]*?)<\/cellXfs>/)||[])[1]||'').matchAll(/<xf\b[^>]*>/g)){ const id=+((m[0].match(/numFmtId="(\d+)"/)||[])[1]||0); let d=(id>=14&&id<=22)||(id>=27&&id<=36)||(id>=45&&id<=47)||(id>=50&&id<=58); if(!d&&custom[id]) d=/[dy]/i.test(custom[id].replace(/"[^"]*"|\[[^\]]*\]|\\./g,'')); dateXf.push(d); }
+  const rows=[];
+  for(const rm of xml.matchAll(/<row\b[^>]*?\br="(\d+)"[^>]*?(?:\/>|>([\s\S]*?)<\/row>)/g)){
+    const r=+rm[1]; if(r>3000||!rm[2]) continue; const cells=[];
+    for(const cm of rm[2].matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)){
+      const at=cm[1], ref=(at.match(/\br="([A-Z]+)\d+"/)||[])[1]; if(!ref||cm[2]==null) continue; const ci=colIdx(ref); if(ci>25) continue;
+      const t=(at.match(/\bt="(\w+)"/)||[])[1], s=+((at.match(/\bs="(\d+)"/)||[])[1]||0), vm=cm[2].match(/<v>([\s\S]*?)<\/v>/); let v=null;
+      if(t==='s'&&vm) v=ss[+vm[1]]; else if(t==='inlineStr') v=xmlDec([...cm[2].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(x=>x[1]).join('')); else if(t==='str'&&vm) v=xmlDec(vm[1]); else if(vm){ const n=parseFloat(vm[1]); v=isNaN(n)?vm[1]:(dateXf[s]?serialISO(n):n); }
+      cells[ci]=v;
+    }
+    rows.push({r,cells});
+  }
+  const hdr=rows.find(x=>x.r<=20&&x.cells.some(c=>/cost\s*centre/i.test(normWs(c)))); if(!hdr) throw new Error("Could not find a 'Cost Centre' column — is this the Channel contract list?");
+  const find=re=>hdr.cells.findIndex(c=>re.test(normWs(c))), col={cc:find(/cost\s*centre/i),name:find(/business\s*activity/i),comm:find(/commencement/i),exp:find(/expiry/i),rent:find(/rental\s*rate\s*per\s*month/i),term:find(/termination/i),pic:find(/^pic/i)};
+  if(col.exp<0) throw new Error("Could not find an 'Expiry Date' column.");
+  const out=[]; for(const x of rows){ if(x.r<=hdr.r) continue; const cc=normWs(x.cells[col.cc]); if(!cc) continue;
+    out.push({cc,name:col.name>=0?normWs(x.cells[col.name]):'',comm:col.comm>=0?toISO(x.cells[col.comm]):null,exp:toISO(x.cells[col.exp]),rent:col.rent>=0?toRent(x.cells[col.rent]):null,term:col.term>=0?String(x.cells[col.term]==null?'':x.cells[col.term]).trim():'',pic:col.pic>=0?normWs(x.cells[col.pic]):''}); }
+  if(!out.length) throw new Error('No contract rows were found in the file.'); return out;
+}
+function splitTerms(raw){
+  const t=String(raw||'').trim(); if(!t||/^n\/a$/i.test(t)) return {tn:'',pen:''};
+  const PEN=/forfeit|reimburse|to pay|pay the|pay unexp|pay rental|unexp|unepired|unexpored|penalty|can claim|need to pay/i, NOT=/notice/i, PRE=/^(No (?:early )?termination(?: contract)? convenience)\s*:\s*(.+)$/i, n=[], p=[];
+  t.split('\n').map(l=>l.trim()).filter(Boolean).forEach(line=>{
+    let m=line.match(PRE); if(m){ n.push(m[1]); p.push(m[2]); return; }
+    m=line.match(/^(.*?notice)\s+with\s+(.*penalty.*)$/i); if(m){ n.push(m[1]); p.push(m[2]); return; }
+    if(/early termination may cause/i.test(line)){ p.push(line); return; }
+    const hn=NOT.test(line), hp=PEN.test(line);
+    if(hn&&hp) line.split(/(?<=\.)\s+(?=[A-Z])/).forEach(s=>{ (PEN.test(s)&&!NOT.test(s)?p:n).push(s.trim()); }); else if(hp) p.push(line); else n.push(line);
+  });
+  return {tn:n.join('\n'),pen:p.join('\n')};
+}
+const fmtRM=v=>v==null?'—':Number(v).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2});
+function buildImportPlan(xrows){
+  const byCc=new Map(); xrows.forEach(x=>{ if(!byCc.has(x.cc)) byCc.set(x.cc,[]); byCc.get(x.cc).push(x); });
+  const toks=s=>new Set(String(s).toLowerCase().match(/[a-z0-9]+/g)||[]), used=new Set(), changes=[], notInFile=[]; let matched=0;
+  data.forEach(d=>{
+    const c=byCc.get(String(d.cc).trim()); if(!c){ notInFile.push(d); return; }
+    let x=c[0]; if(c.length>1){ const dt=toks(d.name); let best=-1; c.forEach(y=>{ const sc=[...toks(y.name)].filter(w=>dt.has(w)).length; if(sc>best){best=sc;x=y;} }); }
+    used.add(x); matched++; const add=(f,label,from,to,patch)=>changes.push({id:d.id,name:d.name,f,label,from,to,patch});
+    if(x.exp&&x.exp!==d.exp) add('exp','Expiry date',fmtDate(d.exp),fmtDate(x.exp),{exp:x.exp});
+    if(x.comm&&x.comm!==d.comm) add('comm','Commencement',fmtDate(d.comm),fmtDate(x.comm),{comm:x.comm});
+    if(x.rent!=null&&(d.rent==null||Math.abs(x.rent-d.rent)>0.005)) add('rent','Rent / month',fmtRM(d.rent),fmtRM(x.rent),{rent:x.rent});
+    if(x.pic&&x.pic!==(d.pic||'')) add('pic','PIC',d.pic||'—',x.pic,{pic:x.pic});
+    if(x.term&&normWs(x.term)!==normWs(d.terms||'')){ const s=splitTerms(x.term); add('terms','Termination & penalty',normWs(d.terms||'—').slice(0,80),normWs(x.term).slice(0,80),{terms:x.term,tn:s.tn,pen:s.pen}); }
+  });
+  return {changes,matched,notInFile,extra:xrows.filter(x=>!used.has(x)),total:xrows.length};
+}
+let impState=null;
+const IMP_F=['exp','terms','pic','rent','comm'];
+function renderImport(){
+  const p=impState, sel=p.changes.filter(c=>$('imp_'+c.f).checked), ids=new Set(sel.map(c=>c.id));
+  IMP_F.forEach(f=>{ $('impc_'+f).textContent='('+p.changes.filter(c=>c.f===f).length+')'; });
+  $('impSummary').innerHTML=`<b>${esc(p.file)}</b> — ${p.total} contracts read. Matched <b>${p.matched}</b> of your ${data.length} outlets${p.notInFile.length?` (${p.notInFile.length} not found in the file, left unchanged)`:''}. ${p.extra.length} contract${p.extra.length!==1?'s':''} in the file ${p.extra.length!==1?'are':'is'} not in this dashboard and will not be added.`;
+  $('impRows').innerHTML=sel.slice(0,400).map(c=>`<tr><td>${esc(c.name)}</td><td>${c.label}</td><td>${esc(c.from)}</td><td>${esc(c.to)}</td></tr>`).join('')||'<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--ink-soft)">Nothing to change for the selected fields.</td></tr>';
+  $('impLists').innerHTML=`<b>In the dashboard but not in the file (kept unchanged):</b><br>${p.notInFile.map(d=>esc(d.name)+' ('+esc(d.cc)+')').join('<br>')||'None'}<br><br><b>In the file but not in the dashboard (not added):</b><br>${p.extra.map(x=>esc(x.name||'—')+' ('+esc(x.cc)+')').join('<br>')||'None'}`;
+  $('impApply').textContent=`Apply ${sel.length} change${sel.length!==1?'s':''} to ${ids.size} outlet${ids.size!==1?'s':''}`; $('impApply').disabled=!sel.length;
+}
+IMP_F.forEach(f=>$('imp_'+f).addEventListener('change',renderImport));
+const closeImport=()=>$('importOverlay').classList.remove('open'); $('importClose').onclick=closeImport; $('importCancel').onclick=closeImport;
+$('importBtn').onclick=()=>$('importFile').click();
+$('importFile').onchange=async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f||!isAdmin) return; showToast('Reading '+f.name+'…');
+  try{ impState=Object.assign(buildImportPlan(await readChannelXlsx(await f.arrayBuffer())),{file:f.name}); IMP_F.forEach(k=>$('imp_'+k).checked=k!=='comm'); renderImport(); $('importOverlay').classList.add('open'); }
+  catch(err){ console.error(err); alert('Could not read this file: '+(err.message||err)); }
+};
+$('impApply').onclick=()=>{
+  const sel=impState.changes.filter(c=>$('imp_'+c.f).checked); if(!sel.length) return; const byId={}; sel.forEach(c=>{ byId[c.id]=Object.assign(byId[c.id]||{},c.patch); });
+  pushUndoSnapshot();
+  Object.keys(byId).forEach(id=>{ const ai=overrides.added.findIndex(r=>r.id===id); if(ai>-1) Object.assign(overrides.added[ai],byId[id]); else overrides.edited[id]=Object.assign({},overrides.edited[id],byId[id]); });
+  saveOverrides(); const n=Object.keys(byId).length; logActivity('edited','IMPORT',`Imported Channel Excel — ${n} outlet${n!==1?'s':''} updated`);
+  closeImport(); showToast(`Imported: ${sel.length} change${sel.length!==1?'s':''} applied to ${n} outlet${n!==1?'s':''}.`); refreshAll();
+};
 /* ---- start ---- */
 (async function init(){
   await loadServerData(); recompute();
